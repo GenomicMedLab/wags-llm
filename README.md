@@ -7,10 +7,10 @@
 
 **Wagnerds toolkit for structured LLM workflows.**
 
-Run LLM tasks with:
+Execute LLM prompts with:
 
 - versioned prompts
-- typed (Pydantic) outputs
+- Pydantic-validated structured outputs
 - optional caching
 
 Extend by defining your own prompts and response models

@@ -1,15 +1,15 @@
-"""Generic JSON task runner.
+"""Run LLM prompts and return schema-validated structured outputs.
 
-Takes:
+Inputs:
 - prompt
-- context + inputs
-- response model
+- context + payload
+- response model (Pydantic)
 
 Returns validated output.
 
 Users extend by:
 - writing prompts
-- defining response models
+- defining response models (Pydantic)
 """
 
 import hashlib
@@ -31,7 +31,7 @@ _logger = logging.getLogger(__name__)
 MAX_LOG_CHARS = int(getenv("MAX_LOG_CHARS", "500"))
 
 
-class JsonTaskService:
+class StructuredTaskRunner:
     """Run structured LLM tasks."""
 
     def __init__(
@@ -40,36 +40,31 @@ class JsonTaskService:
         prompt_registry: PromptRegistry | None = None,
         cache: BaseCache | None = None,
     ) -> None:
-        """Initialize the task service.
+        """Initialize the structured task runner.
 
         :param client: LLM client used to execute prompts.
         :param prompt_registry: Registry used to resolve prompts.
-        :param cache: Optional cache for task results.
+        :param cache: Optional cache for storing and retrieving task results.
         """
         self.client = client
         self.prompt_registry = prompt_registry or build_empty_registry()
         self.cache = cache
 
-    def run(
+    def execute(
         self,
         prompt_name: str,
         prompt_version: str,
         payload: Mapping[str, Any],
         response_model: type[BaseModel],
     ) -> BaseModel:
-        """Run a task and return validated output.
+        """Execute a task and return validated output.
 
         :param prompt_name: Registered prompt name.
         :param prompt_version: Registered prompt version.
         :param payload: JSON-serializable task data.
-
-        Example:
-            payload = {"text": "hello"}
-
         :param response_model: Pydantic model for validation.
         :return: Validated task result.
         :raise RuntimeError: If execution or validation fails.
-
         """
         prompt = self.prompt_registry.get(prompt_name, prompt_version)
 

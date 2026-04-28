@@ -1,4 +1,4 @@
-"""Test that JsonTaskService works correctly"""
+"""Test that StructuredTaskRunner works correctly"""
 
 import pytest
 from pydantic import BaseModel
@@ -7,7 +7,7 @@ from wags_llm.cache.in_memory import InMemoryCache
 from wags_llm.client.base import InvokeJsonResponse, LLMJsonClient
 from wags_llm.prompts.base import BasePromptTemplate
 from wags_llm.prompts.registry import PromptRegistry
-from wags_llm.services.json_task import JsonTaskService
+from wags_llm.services.structured_task import StructuredTaskRunner
 
 
 class DummyPrompt(BasePromptTemplate):
@@ -80,12 +80,12 @@ def test_run_success():
     registry = PromptRegistry()
     registry.register(DummyPrompt())
 
-    service = JsonTaskService(
+    service = StructuredTaskRunner(
         client=DummyClient(),
         prompt_registry=registry,
     )
 
-    result = service.run(
+    result = service.execute(
         prompt_name="test_task",
         prompt_version="v1",
         payload={"text": "hello"},
@@ -102,19 +102,19 @@ def test_run_uses_cache():
     client = DummyClient()
     cache = InMemoryCache()
 
-    service = JsonTaskService(
+    service = StructuredTaskRunner(
         client=client,
         prompt_registry=registry,
         cache=cache,
     )
 
-    result1 = service.run(
+    result1 = service.execute(
         prompt_name="test_task",
         prompt_version="v1",
         payload={"x": 1},
         response_model=ResultModel,
     )
-    result2 = service.run(
+    result2 = service.execute(
         prompt_name="test_task",
         prompt_version="v1",
         payload={"x": 1},
@@ -133,19 +133,19 @@ def test_run_cache_miss_for_different_payload():
     client = DummyClient()
     cache = InMemoryCache()
 
-    service = JsonTaskService(
+    service = StructuredTaskRunner(
         client=client,
         prompt_registry=registry,
         cache=cache,
     )
 
-    service.run(
+    service.execute(
         prompt_name="test_task",
         prompt_version="v1",
         payload={"x": 1},
         response_model=ResultModel,
     )
-    service.run(
+    service.execute(
         prompt_name="test_task",
         prompt_version="v1",
         payload={"x": 2},
@@ -160,13 +160,13 @@ def test_run_validation_error():
     registry = PromptRegistry()
     registry.register(DummyPrompt())
 
-    service = JsonTaskService(
+    service = StructuredTaskRunner(
         client=BadClient(),
         prompt_registry=registry,
     )
 
     with pytest.raises(RuntimeError, match="Task failed"):
-        service.run(
+        service.execute(
             prompt_name="test_task",
             prompt_version="v1",
             payload={"text": "hello"},

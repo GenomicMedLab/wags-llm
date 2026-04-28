@@ -3,6 +3,6 @@
 Run prompts, call models, and validate structured outputs.
 """
 
-from wags_llm.services.json_task import JsonTaskService
+from wags_llm.services.structured_task import StructuredTaskRunner
 
-__all__ = ["JsonTaskService"]
+__all__ = ["StructuredTaskRunner"]
