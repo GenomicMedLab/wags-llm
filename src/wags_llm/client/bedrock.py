@@ -109,7 +109,7 @@ class BedrockClaudeJsonClient(LLMJsonClient):
             if json_block is None:
                 msg = f"Model returned non-JSON output and no JSON block could be extracted; output={raw_text!r}"
                 _logger.exception(msg)
-                raise LLMJsonDecodeError(msg)
+                raise LLMJsonDecodeError(msg) from None
 
             try:
                 parsed = json.loads(json_block)
@@ -162,10 +162,11 @@ class BedrockClaudeJsonClient(LLMJsonClient):
         return "\n".join(part.strip() for part in text_parts if part.strip()).strip()
 
     def _extract_json_block(self, text: str) -> str | None:
-        """
-        Extract the first complete JSON object or array from text.
-        """
+        """Extract the first complete JSON object or array from text.
 
+        :param text: Text to extract JSON from.
+        :return: Extracted JSON string or None if not found.
+        """
         if not text:
             return None
 
