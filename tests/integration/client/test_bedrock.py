@@ -166,6 +166,42 @@ def test_invoke_json_invalid_json():
             )
 
 
+def test_invoke_json_extracts_json_from_mixed_text():
+    """Test that invoke_json extracts JSON even when wrapped in extra text"""
+
+    fake_runtime_client = FakeBedrockRuntimeClient(
+        response={
+            "output": {
+                "message": {
+                    "content": [
+                        {
+                            "text": "Here is the result:\n{\"value\": 1}\nThanks!"
+                        },
+                    ]
+                }
+            }
+        }
+    )
+
+    with patch(
+        "wags_llm.client.bedrock.boto3.Session",
+        return_value=FakeSession(fake_runtime_client),
+    ):
+        client = BedrockClaudeJsonClient(
+            model_id=TEST_MODEL_ID,
+            region_name=TEST_REGION_NAME,
+            profile_name=TEST_PROFILE_NAME,
+        )
+
+        result = client.invoke_json(
+            system_prompt=TEST_SYSTEM_PROMPT,
+            user_prompt=TEST_USER_PROMPT,
+        )
+
+    assert result.parsed_json == {"value": 1}
+    assert result.raw_text == "Here is the result:\n{\"value\": 1}\nThanks!"
+
+
 def test_invoke_json_empty_output():
     """Test that invoke_json raises error when client returns empty text"""
     fake_runtime_client = FakeBedrockRuntimeClient(
