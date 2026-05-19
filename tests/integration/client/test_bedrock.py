@@ -234,6 +234,72 @@ def test_invoke_json_extracts_json_array_from_mixed_text():
     assert result.raw_text == "Result below:\n[1, 2, 3]\nDone."
 
 
+def test_invoke_json_object_with_list_values():
+    """Test dict containing list values parses correctly"""
+
+    fake_runtime_client = FakeBedrockRuntimeClient(
+        response={
+            "output": {
+                "message": {
+                    "content": [
+                        {"text": '{"values": [1, 2, 3]}'},
+                    ]
+                }
+            }
+        }
+    )
+
+    with patch(
+        "wags_llm.client.bedrock.boto3.Session",
+        return_value=FakeSession(fake_runtime_client),
+    ):
+        client = BedrockClaudeJsonClient(
+            model_id=TEST_MODEL_ID,
+            region_name=TEST_REGION_NAME,
+            profile_name=TEST_PROFILE_NAME,
+        )
+
+        result = client.invoke_json(
+            system_prompt=TEST_SYSTEM_PROMPT,
+            user_prompt=TEST_USER_PROMPT,
+        )
+
+    assert result.parsed_json == {"values": [1, 2, 3]}
+
+
+def test_invoke_json_list_of_dicts():
+    """Test list of dicts parses correctly"""
+
+    fake_runtime_client = FakeBedrockRuntimeClient(
+        response={
+            "output": {
+                "message": {
+                    "content": [
+                        {"text": '[{"a": 1}, {"a": 2}]'},
+                    ]
+                }
+            }
+        }
+    )
+
+    with patch(
+        "wags_llm.client.bedrock.boto3.Session",
+        return_value=FakeSession(fake_runtime_client),
+    ):
+        client = BedrockClaudeJsonClient(
+            model_id=TEST_MODEL_ID,
+            region_name=TEST_REGION_NAME,
+            profile_name=TEST_PROFILE_NAME,
+        )
+
+        result = client.invoke_json(
+            system_prompt=TEST_SYSTEM_PROMPT,
+            user_prompt=TEST_USER_PROMPT,
+        )
+
+    assert result.parsed_json == [{"a": 1}, {"a": 2}]
+
+
 def test_invoke_json_empty_output():
     """Test that invoke_json raises error when client returns empty text"""
     fake_runtime_client = FakeBedrockRuntimeClient(
