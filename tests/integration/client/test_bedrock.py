@@ -157,7 +157,7 @@ def test_invoke_json_invalid_json():
         )
 
         with pytest.raises(
-            LLMJsonDecodeError, match=r"Model returned non-JSON output:"
+            LLMJsonDecodeError, match=r"Model returned non-JSON output and no JSON block could be extracted; output='not json"
         ):
             client.invoke_json(
                 system_prompt=TEST_SYSTEM_PROMPT,
