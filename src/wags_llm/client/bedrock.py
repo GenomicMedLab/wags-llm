@@ -103,7 +103,6 @@ class BedrockClaudeJsonClient(LLMJsonClient):
             parsed = json.loads(raw_text)
 
         except json.JSONDecodeError:
-
             json_block = self._extract_json_block(raw_text)
 
             if json_block is None:
@@ -114,9 +113,7 @@ class BedrockClaudeJsonClient(LLMJsonClient):
             try:
                 parsed = json.loads(json_block)
 
-                _logger.warning(
-                    "Recovered JSON from non-pure model output."
-                )
+                _logger.warning("Recovered JSON from non-pure model output.")
 
             except json.JSONDecodeError as exc:
                 msg = (
@@ -174,18 +171,16 @@ class BedrockClaudeJsonClient(LLMJsonClient):
         start = None
 
         for i, ch in enumerate(text):
-
             if ch in "{[":
                 if start is None:
                     start = i
                 stack.append(ch)
 
             elif ch in "}]":
-
                 if stack:
                     stack.pop()
 
                     if not stack and start is not None:
-                        return text[start:i + 1]
+                        return text[start : i + 1]
 
         return None
