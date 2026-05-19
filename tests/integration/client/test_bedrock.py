@@ -174,9 +174,7 @@ def test_invoke_json_extracts_json_from_mixed_text():
             "output": {
                 "message": {
                     "content": [
-                        {
-                            "text": "Here is the result:\n{\"value\": 1}\nThanks!"
-                        },
+                        {"text": 'Here is the result:\n{"value": 1}\nThanks!'},
                     ]
                 }
             }
@@ -199,7 +197,7 @@ def test_invoke_json_extracts_json_from_mixed_text():
         )
 
     assert result.parsed_json == {"value": 1}
-    assert result.raw_text == "Here is the result:\n{\"value\": 1}\nThanks!"
+    assert result.raw_text == 'Here is the result:\n{"value": 1}\nThanks!'
 
 
 def test_invoke_json_empty_output():
