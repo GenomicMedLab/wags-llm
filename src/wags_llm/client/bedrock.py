@@ -101,10 +101,30 @@ class BedrockClaudeJsonClient(LLMJsonClient):
 
         try:
             parsed = json.loads(raw_text)
-        except json.JSONDecodeError as exc:
-            msg = f"Model returned non-JSON output: {exc}; output={raw_text!r}"
-            _logger.exception(msg)
-            raise LLMJsonDecodeError(msg) from exc
+
+        except json.JSONDecodeError:
+
+            json_block = self._extract_json_block(raw_text)
+
+            if json_block is None:
+                msg = f"Model returned non-JSON output and no JSON block could be extracted; output={raw_text!r}"
+                _logger.exception(msg)
+                raise LLMJsonDecodeError(msg)
+
+            try:
+                parsed = json.loads(json_block)
+
+                _logger.warning(
+                    "Recovered JSON from non-pure model output."
+                )
+
+            except json.JSONDecodeError as exc:
+                msg = (
+                    f"Extracted JSON block could not be decoded: "
+                    f"{exc}; block={json_block!r}; output={raw_text!r}"
+                )
+                _logger.exception(msg)
+                raise LLMJsonDecodeError(msg) from exc
 
         return InvokeJsonResponse(parsed_json=parsed, raw_text=raw_text)
 
@@ -140,3 +160,31 @@ class BedrockClaudeJsonClient(LLMJsonClient):
             raise LLMResponseFormatError(msg)
 
         return "\n".join(part.strip() for part in text_parts if part.strip()).strip()
+
+    def _extract_json_block(self, text: str) -> str | None:
+        """
+        Extract the first complete JSON object or array from text.
+        """
+
+        if not text:
+            return None
+
+        stack = []
+        start = None
+
+        for i, ch in enumerate(text):
+
+            if ch in "{[":
+                if start is None:
+                    start = i
+                stack.append(ch)
+
+            elif ch in "}]":
+
+                if stack:
+                    stack.pop()
+
+                    if not stack and start is not None:
+                        return text[start:i + 1]
+
+        return None
