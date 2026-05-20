@@ -63,30 +63,56 @@ class BedrockClaudeJsonClient(LLMJsonClient):
         self,
         system_prompt: str,
         user_prompt: str,
+        json_schema: dict[str, Any] | None = None,
     ) -> InvokeJsonResponse:
-        """Call the Bedrock Converse API and return response containing parsed JSON and
-        raw text.
+        """Call the Bedrock Converse API and return response containing structured JSON
+        and raw text.
+
+        When a JSON schema is provided, it is sent to Bedrock using structured output
+        configuration to constrain the model response format. Without a JSON schema,
+        the model may return JSON along with additional reasoning or explanatory text.
 
         Raw text is returned for audit or debugging purposes.
 
         :param system_prompt: System prompt text.
         :param user_prompt: User prompt text.
+        :param json_schema: Optional JSON schema used to constrain the model response.
         :return: InvokeJsonResponse containing parsed_json and raw text.
         :raise LLMInvocationError: If the Bedrock call fails.
         :raise LLMResponseFormatError: If the response shape is invalid.
         :raise LLMEmptyResponseError: If the model returns empty text.
         :raise LLMJsonDecodeError: If the model output is not valid JSON.
         """
+        converse_params: dict[str, Any] = {
+            "modelId": self.model_id,
+            "system": [{"text": system_prompt}],
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [{"text": user_prompt}],
+                }
+            ],
+            "inferenceConfig": {
+                "maxTokens": self.max_tokens,
+                "temperature": 0,
+            },
+        }
+
+        if json_schema:
+            converse_params["outputConfig"] = {
+                "textFormat": {
+                    "type": "json_schema",
+                    "structure": {
+                        "jsonSchema": {
+                            "schema": json.dumps(json_schema),
+                            "name": "structured_response",
+                        }
+                    },
+                }
+            }
+
         try:
-            response = self._client.converse(
-                modelId=self.model_id,
-                system=[{"text": system_prompt}],
-                messages=[{"role": "user", "content": [{"text": user_prompt}]}],
-                inferenceConfig={
-                    "maxTokens": self.max_tokens,
-                    "temperature": self.temperature,
-                },
-            )
+            response = self._client.converse(**converse_params)
         except Exception as exc:
             msg = f"Bedrock converse failed: {exc}"
             _logger.exception(msg)
