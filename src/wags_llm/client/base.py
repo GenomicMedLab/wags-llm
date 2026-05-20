@@ -35,6 +35,7 @@ class LLMJsonClient(Protocol):
         self,
         system_prompt: str,
         user_prompt: str,
+        json_schema: dict[str, Any] | None = None,
     ) -> InvokeJsonResponse:
         """Invoke the model and return response containing parsed JSON and raw text.
 
@@ -42,6 +43,7 @@ class LLMJsonClient(Protocol):
 
         :param system_prompt: System prompt text.
         :param user_prompt: User prompt text.
+        :param json_schema: Optional JSON schema used to constrain the model response.
         :returns: Structured response from the client.
         :raise LLMInvocationError: If the invocation call fails.
         :raise LLMResponseFormatError: If the response shape is invalid.

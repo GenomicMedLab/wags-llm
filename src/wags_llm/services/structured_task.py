@@ -84,6 +84,7 @@ class StructuredTaskRunner:
             invoke_json_response = self.client.invoke_json(
                 system_prompt=prompt.build_system_prompt(),
                 user_prompt=prompt.build_user_prompt(payload=payload),
+                json_schema=response_model.model_json_schema(),
             )
 
             result = response_model.model_validate(invoke_json_response.parsed_json)

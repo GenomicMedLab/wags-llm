@@ -1,5 +1,7 @@
 """Test that StructuredTaskRunner works correctly"""
 
+from typing import Any
+
 import pytest
 from pydantic import BaseModel
 
@@ -38,6 +40,7 @@ class DummyClient(LLMJsonClient):
         self,
         system_prompt: str,  # noqa: ARG002
         user_prompt: str,  # noqa: ARG002
+        json_schema: dict[str, Any] | None = None,  # noqa: ARG002
     ) -> InvokeJsonResponse:
         """Return a fixed JSON response."""
         self.calls += 1
@@ -60,6 +63,7 @@ class BadClient:
         self,
         system_prompt: str,  # noqa: ARG002
         user_prompt: str,  # noqa: ARG002
+        json_schema: dict[str, Any] | None = None,  # noqa: ARG002
     ) -> InvokeJsonResponse:
         """Return an invalid JSON shape."""
         self.calls += 1

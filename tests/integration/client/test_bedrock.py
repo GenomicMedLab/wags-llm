@@ -100,6 +100,51 @@ def test_invoke_json_success():
     assert invoke_json_response.raw_text == '{"value": 1}'
 
 
+def test_invoke_json_with_json_schema():
+    """Test that invoke_json passes structured output config to Bedrock."""
+    fake_runtime_client = FakeBedrockRuntimeClient(
+        response={
+            "output": {
+                "message": {
+                    "content": [
+                        {"text": '{"value": 1}'},
+                    ]
+                }
+            }
+        }
+    )
+
+    json_schema = {
+        "type": "object",
+        "properties": {
+            "value": {"type": "integer"},
+        },
+        "required": ["value"],
+        "additionalProperties": False,
+    }
+
+    with patch(
+        "wags_llm.client.bedrock.boto3.Session",
+        return_value=FakeSession(fake_runtime_client),
+    ) as mock_session:
+        client = BedrockClaudeJsonClient(
+            model_id=TEST_MODEL_ID,
+            region_name=TEST_REGION_NAME,
+            profile_name=TEST_PROFILE_NAME,
+        )
+
+        invoke_json_response = client.invoke_json(
+            system_prompt=TEST_SYSTEM_PROMPT,
+            user_prompt=TEST_USER_PROMPT,
+            json_schema=json_schema,
+        )
+
+    mock_session.assert_called_once_with(profile_name=TEST_PROFILE_NAME)
+
+    assert invoke_json_response.parsed_json == {"value": 1}
+    assert invoke_json_response.raw_text == '{"value": 1}'
+
+
 def test_invoke_json_custom_profile():
     """Test that invoke_json uses the provided AWS profile"""
     fake_runtime_client = FakeBedrockRuntimeClient(
