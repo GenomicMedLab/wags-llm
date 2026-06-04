@@ -14,7 +14,7 @@ from wags_llm.skills.base import BaseSkillTemplate
 _logger = logging.getLogger(__name__)
 
 
-# TODO: discuss with maintainers - registry key is currently (name, version)
+# NOTE: discuss with maintainers - registry key is currently (name, version)
 # where name is derived from the file stem. Recommend keeping name as the
 # key rather than skill_path since skill_path is an internal implementation
 # detail and should not be exposed as the public identifier.

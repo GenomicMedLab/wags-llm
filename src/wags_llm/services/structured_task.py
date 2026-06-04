@@ -94,7 +94,11 @@ class StructuredTaskRunner:
             cache_key = None
 
         try:
-            # NOTE: no need to change this, unless we would like to change the attribute names, but skill.md file is a "system prompt".
+            # NOTE: system_prompt and user_prompt are parameter names from invoke_json()
+            # and do not need to change. The skill .md file serves the same purpose as
+            # a system prompt since it contains instructions for the LLM to follow.
+            # Changing these parameter names in invoke_json() would break both
+            # execute_prompt() and execute_skill().
             invoke_json_response = self.client.invoke_json(
                 system_prompt=skill.load_skill(),
                 user_prompt=skill.build_user_prompt(payload=payload),
@@ -163,8 +167,7 @@ class StructuredTaskRunner:
             return result
 
     # NOTE: name and version were originally prompt_name and prompt_version.
-    # # They were renamed to be generic so that _cache_key() can be shared
-    # # between execute_prompt() and execute_skill().
+    # They were renamed to be generic so that _cache_key() can be shared between execute_prompt() and execute_skill().
     def _cache_key(
         self,
         name: str,

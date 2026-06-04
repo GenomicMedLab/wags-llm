@@ -11,11 +11,12 @@ from wags_llm.services.structured_task import StructuredTaskRunner
 from wags_llm.skills.base import BaseSkillTemplate
 from wags_llm.skills.registry import SkillRegistry
 
+
 # NOTE: DummyClient, BadClient, and ResultModel are copied from
-# tests/unit/services/test_structured_task.py for easier code review.
-# TODO: discuss with maintainer if we need to move to test_json_task.py
-
-
+# tests/integration/services/test_json_task.py for easier code review.
+# This file follows the same pattern as test_json_task.py but lives under
+# unit/skills/ to keep all skill related tests together.
+# Discuss with maintainer if this should move to integration/services/.
 class DummySkill(BaseSkillTemplate):
     """Simple skill for service tests."""
 

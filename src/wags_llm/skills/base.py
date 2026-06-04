@@ -31,9 +31,10 @@ class BaseSkillTemplate(ABC):
         """
         return Path(self.skill_path).stem
 
-    # TODO: discuss with maintainers - should BaseSkillTemplate have a
+    # NOTE: discuss with maintainers - should BaseSkillTemplate have a
     # build_system_prompt() that calls load_skill()? This would make skills
-    # and prompts share a common interface.
+    # and prompts share a common interface. build_system_prompt() would simply
+    # be a wrapper that calls load_skill() under the hood.
     def load_skill(self) -> str:
         """Load skill instructions from file.
 
