@@ -57,11 +57,6 @@ class BaseSkillTemplate(ABC):
     def build_user_prompt(self, payload: Mapping[str, Any]) -> str:
         """Build the user prompt.
 
-        # TODO: discuss with maintainers. Should input formatting instructions
-        # live in build_user_prompt() or directly in the skill .md file?
-        # If they live in the .md file, we would need to revisit the user_prompt
-        # in execute_skill() and potentially remove this method entirely.
-
         :param payload: JSON-serializable task data.
         :return: User prompt string.
         """
