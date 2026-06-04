@@ -9,7 +9,7 @@ from wags_llm.skills.registry import SkillRegistry, build_empty_registry
 
 
 class DummySkill(BaseSkillTemplate):
-    skill_path = "skills/entity_detection.md"
+    skill_path = "tests/unit/skills/entity_detection.md"
     version = "v1"
 
     def build_user_prompt(self, payload: Mapping[str, Any]) -> str:
