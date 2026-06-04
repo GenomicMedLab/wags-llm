@@ -89,7 +89,7 @@ def test_run_success():
         prompt_registry=registry,
     )
 
-    result = service.execute(
+    result = service.execute_prompt(
         prompt_name="test_task",
         prompt_version="v1",
         payload={"text": "hello"},
@@ -112,13 +112,13 @@ def test_run_uses_cache():
         cache=cache,
     )
 
-    result1 = service.execute(
+    result1 = service.execute_prompt(
         prompt_name="test_task",
         prompt_version="v1",
         payload={"x": 1},
         response_model=ResultModel,
     )
-    result2 = service.execute(
+    result2 = service.execute_prompt(
         prompt_name="test_task",
         prompt_version="v1",
         payload={"x": 1},
@@ -143,13 +143,13 @@ def test_run_cache_miss_for_different_payload():
         cache=cache,
     )
 
-    service.execute(
+    service.execute_prompt(
         prompt_name="test_task",
         prompt_version="v1",
         payload={"x": 1},
         response_model=ResultModel,
     )
-    service.execute(
+    service.execute_prompt(
         prompt_name="test_task",
         prompt_version="v1",
         payload={"x": 2},
@@ -170,7 +170,7 @@ def test_run_validation_error():
     )
 
     with pytest.raises(RuntimeError, match="Task failed"):
-        service.execute(
+        service.execute_prompt(
             prompt_name="test_task",
             prompt_version="v1",
             payload={"text": "hello"},
