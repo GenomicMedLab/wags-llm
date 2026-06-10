@@ -42,6 +42,17 @@ _logger = logging.getLogger(__name__)
 MAX_LOG_CHARS = int(getenv("MAX_LOG_CHARS", "500"))
 
 
+class CacheCheckResult(BaseModel):
+    """Result of a cache lookup.
+
+    :var cache_key: The cache key for this request. None if caching is disabled.
+    :var cached: The validated cached result. None if no cached result was found.
+    """
+
+    cache_key: str | None
+    cached: Any | None
+
+
 class StructuredTaskRunner:
     """Run structured LLM tasks."""
 
@@ -56,6 +67,7 @@ class StructuredTaskRunner:
 
         :param client: LLM client used to execute prompts.
         :param prompt_registry: Registry used to resolve prompts.
+        :param skill_registry: Registry used to resolve skills.
         :param cache: Optional cache for storing and retrieving task results.
         """
         self.client = client
@@ -81,34 +93,27 @@ class StructuredTaskRunner:
         """
         skill = self.skill_registry.get(skill_name, skill_version)
 
-        if self.cache is not None:
-            cache_key = self._cache_key(
-                name=skill_name,
-                version=skill_version,
-                payload=payload,
-            )
-            cached = self.cache.get(cache_key)
-            if cached is not None:
-                return response_model.model_validate(cached)
-        else:
-            cache_key = None
+        cache_result = self._check_cache(
+            name=skill_name,
+            version=skill_version,
+            payload=payload,
+            response_model=response_model,
+        )
+
+        if cache_result.cached is not None:
+            return cache_result.cached
 
         try:
-            # NOTE: system_prompt and user_prompt are parameter names from invoke_json()
-            # and do not need to change. The skill .md file serves the same purpose as
-            # a system prompt since it contains instructions for the LLM to follow.
-            # Changing these parameter names in invoke_json() would break both
-            # execute_prompt() and execute_skill().
             invoke_json_response = self.client.invoke_json(
-                system_prompt=skill.load_skill(),
+                system_prompt=skill.build_system_prompt(),
                 user_prompt=skill.build_user_prompt(payload=payload),
                 json_schema=response_model.model_json_schema(),
             )
 
             result = response_model.model_validate(invoke_json_response.parsed_json)
 
-            if self.cache is not None and cache_key is not None:
-                self.cache.set(cache_key, result.model_dump())
+            if self.cache is not None and cache_result.cache_key is not None:
+                self.cache.set(cache_result.cache_key, result.model_dump())
 
         except (LLMClientError, ValidationError) as exc:
             msg = f"Task failed: {exc}"
@@ -135,17 +140,14 @@ class StructuredTaskRunner:
         """
         prompt = self.prompt_registry.get(prompt_name, prompt_version)
 
-        if self.cache is not None:
-            cache_key = self._cache_key(
-                name=prompt_name,
-                version=prompt_version,
-                payload=payload,
-            )
-            cached = self.cache.get(cache_key)
-            if cached is not None:
-                return response_model.model_validate(cached)
-        else:
-            cache_key = None
+        cache_result = self._check_cache(
+            name=prompt_name,
+            version=prompt_version,
+            payload=payload,
+            response_model=response_model,
+        )
+        if cache_result.cached is not None:
+            return cache_result.cached
 
         try:
             invoke_json_response = self.client.invoke_json(
@@ -156,8 +158,8 @@ class StructuredTaskRunner:
 
             result = response_model.model_validate(invoke_json_response.parsed_json)
 
-            if self.cache is not None and cache_key is not None:
-                self.cache.set(cache_key, result.model_dump())
+            if self.cache is not None and cache_result.cache_key is not None:
+                self.cache.set(cache_result.cache_key, result.model_dump())
 
         except (LLMClientError, ValidationError) as exc:
             msg = f"Task failed: {exc}"
@@ -166,8 +168,6 @@ class StructuredTaskRunner:
         else:
             return result
 
-    # NOTE: name and version were originally prompt_name and prompt_version.
-    # They were renamed to be generic so that _cache_key() can be shared between execute_prompt() and execute_skill().
     def _cache_key(
         self,
         name: str,
@@ -200,3 +200,34 @@ class StructuredTaskRunner:
             "Cache lookup using key='%s' (for cache_payload=%s)", cache_key, cache_ctx
         )
         return cache_key
+
+    def _check_cache(
+        self,
+        name: str,
+        version: str,
+        payload: Mapping[str, Any],
+        response_model: type[BaseModel],
+    ) -> CacheCheckResult:
+        """Check cache for an existing result.
+
+        :param name: Registered name.
+        :param version: Registered version.
+        :param payload: JSON-serializable task data.
+        :param response_model: Pydantic model for validation.
+        :return: Tuple of (cache_key, validated result). Result is None on cache miss.
+        """
+        if self.cache is not None:
+            cache_key = self._cache_key(
+                name=name,
+                version=version,
+                payload=payload,
+            )
+            cached = self.cache.get(cache_key)
+            if cached is not None:
+                return CacheCheckResult(
+                    cache_key=cache_key, cached=response_model.model_validate(cached)
+                )
+        else:
+            cache_key = None
+
+        return CacheCheckResult(cache_key=cache_key, cached=None)
