@@ -4,6 +4,7 @@ Users extend this to define new skill inputs.
 """
 
 import logging
+import re
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from pathlib import Path
@@ -12,16 +13,25 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
-# TODO: ask maintainers if version is needed.
+class SkillTemplateError(Exception):
+    """Raise custom exceptions for SkillTemplateError."""
+
+
 class BaseSkillTemplate(ABC):
     """Base skill template.
 
     :var skill_path: Path to the skill `.md` file.
-    :var version: Skill version.
     """
 
-    skill_path: str
-    version: str
+    skill_path: Path
+
+    _skill_file_pattern = re.compile(r"^(?P<name>.+)_(?P<version>[^_]+)\.md$")
+
+    def __init__(self) -> None:
+        """Initialize the skill template and validate the skill filename format.
+        :raise SkillTemplateError: If skill_path does not follow the required format.
+        """
+        self._skill_filename_match = self._validate_skill_filename()
 
     @property
     def name(self) -> str:
@@ -29,29 +39,46 @@ class BaseSkillTemplate(ABC):
 
         :return: Skill name string.
         """
-        return Path(self.skill_path).stem
+        return self._skill_filename_match.group("name")
 
-    # NOTE: discuss with maintainers - should BaseSkillTemplate have a
-    # build_system_prompt() that calls load_skill()? This would make skills
-    # and prompts share a common interface. build_system_prompt() would simply
-    # be a wrapper that calls load_skill() under the hood.
+    @property
+    def version(self) -> str:
+        """Derive skill version from the file stem.
+
+        :return: Skill version string.
+        """
+        return self._skill_filename_match.group("version")
+
     def load_skill(self) -> str:
         """Load skill instructions from file.
 
         :return: Skill instruction string.
-        :raise FileNotFoundError: If skill_path does not exist.
+        :raise ValueError: If skill filename does not follow the required format.
+        :raise SkillTemplateError: If skill_path does not exist or If skill file cannot be read.
         """
-        file_path = Path(self.skill_path)
-        logger.debug("Loading skill from path: %s", file_path)
+        logger.debug("Loading skill from path: %s", self.skill_path)
+        if not self.skill_path.exists():
+            msg = f"Skill path not found: {self.skill_path}"
+            raise SkillTemplateError(msg)
 
         try:
-            content = file_path.read_text(encoding="utf-8")
-        except FileNotFoundError as exc:
-            msg = f"Skill path not found: {file_path}"
-            raise FileNotFoundError(msg) from exc
+            content = self.skill_path.read_text(encoding="utf-8")
+        except OSError as exc:
+            msg = f"Failed to read skill file: {self.skill_path}"
+            logger.exception(msg)
+            raise SkillTemplateError(msg) from exc
 
-        logger.info("Loaded skill from path: %s", file_path)
+        logger.info("Loaded skill from path: %s", self.skill_path)
         return content
+
+    def build_system_prompt(self) -> str:
+        """Build the system prompt by loading instructions from the skill file.
+
+        :return: Skill instruction string.
+        :raise ValueError: If skill filename does not follow the required format.
+        :raise SkillTemplateError: If skill_path does not exist or if skill file cannot be read.
+        """
+        return self.load_skill()
 
     @abstractmethod
     def build_user_prompt(self, payload: Mapping[str, Any]) -> str:
@@ -60,3 +87,16 @@ class BaseSkillTemplate(ABC):
         :param payload: JSON-serializable task data.
         :return: User prompt string.
         """
+
+    def _validate_skill_filename(self) -> re.Match:
+        """Parse the skill filename to extract name and version.
+
+        :return: Regex match object.
+        :raise SkillTemplateError: If filename does not follow the required format.
+        """
+        name = self.skill_path.name
+        match = self._skill_file_pattern.search(name)
+        if not match:
+            msg = f"Skill filename must follow the format '{{skill_name}}_{{version}}.md', got: '{self.skill_path.name}'"
+            raise SkillTemplateError(msg)
+        return match
