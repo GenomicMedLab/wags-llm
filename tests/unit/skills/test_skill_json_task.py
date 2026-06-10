@@ -1,5 +1,6 @@
 """Test that StructuredTaskRunner works correctly for skills"""
 
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -8,32 +9,24 @@ from pydantic import BaseModel
 from wags_llm.cache.in_memory import InMemoryCache
 from wags_llm.client.base import InvokeJsonResponse, LLMJsonClient
 from wags_llm.services.structured_task import StructuredTaskRunner
-from wags_llm.skills.base import BaseSkillTemplate
+from wags_llm.skills.base import BaseSkillTemplate, SkillTemplateError
 from wags_llm.skills.registry import SkillRegistry
 
 
-# NOTE: DummyClient, BadClient, and ResultModel are copied from
-# tests/integration/services/test_json_task.py for easier code review.
-# This file follows the same pattern as test_json_task.py but lives under
-# unit/skills/ to keep all skill related tests together.
-# Discuss with maintainer if this should move to integration/services/.
 class DummySkill(BaseSkillTemplate):
     """Simple skill for service tests."""
 
-    skill_path = "tests/unit/skills/entity_detection.md"
-    version = "v1"
+    skill_path = Path("tests/unit/skills/test_skill_v1.md")
 
     def build_user_prompt(self, payload) -> str:
         """Build the user prompt."""
         return f"Payload: {payload}"
 
 
-# NOTE: new added to test missing skill file
 class MissingFileSkill(BaseSkillTemplate):
     """Missing skill file for service tests."""
 
-    skill_path = "tests/unit/skills/does_not_exist.md"
-    version = "v1"
+    skill_path = Path("tests/unit/skills/does_not_exist_v1.md")
 
     def build_user_prompt(self, payload) -> str:
         """Build the user prompt."""
@@ -103,7 +96,7 @@ def test_execute_skill_success():
     )
 
     result = service.execute_skill(
-        skill_name="entity_detection",
+        skill_name="test_skill",
         skill_version="v1",
         payload={"text": "hello"},
         response_model=ResultModel,
@@ -123,7 +116,7 @@ def test_execute_skill_file_not_found():
         skill_registry=registry,
     )
 
-    with pytest.raises(FileNotFoundError):
+    with pytest.raises(SkillTemplateError):
         service.execute_skill(
             skill_name="does_not_exist",
             skill_version="v1",
@@ -146,13 +139,13 @@ def test_execute_skill_uses_cache():
     )
 
     result1 = service.execute_skill(
-        skill_name="entity_detection",
+        skill_name="test_skill",
         skill_version="v1",
         payload={"x": 1},
         response_model=ResultModel,
     )
     result2 = service.execute_skill(
-        skill_name="entity_detection",
+        skill_name="test_skill",
         skill_version="v1",
         payload={"x": 1},
         response_model=ResultModel,
@@ -177,13 +170,13 @@ def test_execute_skill_cache_miss_for_different_payload():
     )
 
     service.execute_skill(
-        skill_name="entity_detection",
+        skill_name="test_skill",
         skill_version="v1",
         payload={"x": 1},
         response_model=ResultModel,
     )
     service.execute_skill(
-        skill_name="entity_detection",
+        skill_name="test_skill",
         skill_version="v1",
         payload={"x": 2},
         response_model=ResultModel,
@@ -204,7 +197,7 @@ def test_execute_skill_validation_error():
 
     with pytest.raises(RuntimeError, match="Task failed"):
         service.execute_skill(
-            skill_name="entity_detection",
+            skill_name="test_skill",
             skill_version="v1",
             payload={"text": "hello"},
             response_model=ResultModel,
