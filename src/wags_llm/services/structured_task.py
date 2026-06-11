@@ -42,7 +42,7 @@ _logger = logging.getLogger(__name__)
 MAX_LOG_CHARS = int(getenv("MAX_LOG_CHARS", "500"))
 
 
-class CacheCheckResult(BaseModel):
+class CacheLookupResult(BaseModel):
     """Result of a cache lookup.
 
     :var cache_key: The cache key for this request. None if caching is disabled.
@@ -50,7 +50,7 @@ class CacheCheckResult(BaseModel):
     """
 
     cache_key: str | None
-    cached: Any | None
+    cached: BaseModel | None
 
 
 class StructuredTaskRunner:
@@ -207,14 +207,14 @@ class StructuredTaskRunner:
         version: str,
         payload: Mapping[str, Any],
         response_model: type[BaseModel],
-    ) -> CacheCheckResult:
+    ) -> CacheLookupResult:
         """Check cache for an existing result.
 
         :param name: Registered name.
         :param version: Registered version.
         :param payload: JSON-serializable task data.
         :param response_model: Pydantic model for validation.
-        :return: Tuple of (cache_key, validated result). Result is None on cache miss.
+        :return: Container with the cache key and cached object (validated result). Cached object is None on cache miss.
         """
         if self.cache is not None:
             cache_key = self._cache_key(
@@ -224,10 +224,10 @@ class StructuredTaskRunner:
             )
             cached = self.cache.get(cache_key)
             if cached is not None:
-                return CacheCheckResult(
+                return CacheLookupResult(
                     cache_key=cache_key, cached=response_model.model_validate(cached)
                 )
         else:
             cache_key = None
 
-        return CacheCheckResult(cache_key=cache_key, cached=None)
+        return CacheLookupResult(cache_key=cache_key, cached=None)
