@@ -20,7 +20,10 @@ class SkillTemplateError(Exception):
 class BaseSkillTemplate(ABC):
     """Base skill template.
 
-    :var skill_path: Path to the skill `.md` file.
+    :var skill_path: Path to the skill `.md` file. Must follow the format
+        {skill_name}_{version}.md (e.g. entity_detection_v1.md).
+        If the filename does not follow this format, a SkillTemplateError
+        will be raised on initialization.
     """
 
     skill_path: Path
@@ -29,9 +32,10 @@ class BaseSkillTemplate(ABC):
 
     def __init__(self) -> None:
         """Initialize the skill template and validate the skill filename format.
+
         :raise SkillTemplateError: If skill_path does not follow the required format.
         """
-        self._skill_filename_match = self._validate_skill_filename()
+        self._skill_filename_match = self._get_skill_name_and_version()
 
     @property
     def name(self) -> str:
@@ -53,8 +57,8 @@ class BaseSkillTemplate(ABC):
         """Load skill instructions from file.
 
         :return: Skill instruction string.
-        :raise ValueError: If skill filename does not follow the required format.
-        :raise SkillTemplateError: If skill_path does not exist or If skill file cannot be read.
+        :raise SkillTemplateError: If skill_path does not exist, if the file
+        contains invalid UTF-8, or if the file cannot be read.
         """
         logger.debug("Loading skill from path: %s", self.skill_path)
         if not self.skill_path.exists():
@@ -63,6 +67,10 @@ class BaseSkillTemplate(ABC):
 
         try:
             content = self.skill_path.read_text(encoding="utf-8")
+        except UnicodeDecodeError as exc:
+            msg = f"Skill file is not valid UTF-8: {self.skill_path}"
+            logger.exception(msg)
+            raise SkillTemplateError(msg) from exc
         except OSError as exc:
             msg = f"Failed to read skill file: {self.skill_path}"
             logger.exception(msg)
@@ -75,7 +83,6 @@ class BaseSkillTemplate(ABC):
         """Build the system prompt by loading instructions from the skill file.
 
         :return: Skill instruction string.
-        :raise ValueError: If skill filename does not follow the required format.
         :raise SkillTemplateError: If skill_path does not exist or if skill file cannot be read.
         """
         return self.load_skill()
@@ -88,7 +95,7 @@ class BaseSkillTemplate(ABC):
         :return: User prompt string.
         """
 
-    def _validate_skill_filename(self) -> re.Match:
+    def _get_skill_name_and_version(self) -> tuple[str, str]:
         """Parse the skill filename to extract name and version.
 
         :return: Regex match object.
