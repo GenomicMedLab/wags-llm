@@ -24,17 +24,9 @@ from pydantic import BaseModel, ValidationError
 from wags_llm.cache.base import BaseCache
 from wags_llm.client.base import LLMJsonClient
 from wags_llm.client.exceptions import LLMClientError
-from wags_llm.prompts.registry import (
-    PromptRegistry,
-)
-from wags_llm.prompts.registry import (
+from wags_llm.registry import Registry
+from wags_llm.registry import (
     build_empty_registry as build_empty_prompt_registry,
-)
-from wags_llm.skills.registry import (
-    SkillRegistry,
-)
-from wags_llm.skills.registry import (
-    build_empty_registry as build_empty_skill_registry,
 )
 
 _logger = logging.getLogger(__name__)
@@ -59,20 +51,17 @@ class StructuredTaskRunner:
     def __init__(
         self,
         client: LLMJsonClient,
-        prompt_registry: PromptRegistry | None = None,
-        skill_registry: SkillRegistry | None = None,
+        prompt_registry: Registry | None = None,
         cache: BaseCache | None = None,
     ) -> None:
         """Initialize the structured task runner.
 
         :param client: LLM client used to execute prompts.
         :param prompt_registry: Registry used to resolve prompts.
-        :param skill_registry: Registry used to resolve skills.
         :param cache: Optional cache for storing and retrieving task results.
         """
         self.client = client
         self.prompt_registry = prompt_registry or build_empty_prompt_registry()
-        self.skill_registry = skill_registry or build_empty_skill_registry()
         self.cache = cache
 
     def execute_skill(
@@ -91,7 +80,7 @@ class StructuredTaskRunner:
         :return: Validated task result.
         :raise RuntimeError: If execution or validation fails.
         """
-        skill = self.skill_registry.get(skill_name, skill_version)
+        skill = self.prompt_registry.get(skill_name, skill_version)
 
         cache_result = self._check_cache(
             name=skill_name,
