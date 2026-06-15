@@ -5,11 +5,11 @@ from typing import Any
 
 import pytest
 
-from wags_llm.skills.base import BaseSkillTemplate, SkillTemplateError
-from wags_llm.skills.registry import SkillRegistry, build_empty_registry
+from wags_llm.registry import Registry, build_empty_registry
+from wags_llm.templates.skill_template import SkillTemplate, SkillTemplateError
 
 
-class DummySkill(BaseSkillTemplate):
+class DummySkill(SkillTemplate):
     skill_path = Path("tests/unit/skills/test_skill_v1.md")
 
     def build_user_prompt(self, payload: Mapping[str, Any]) -> str:
@@ -26,7 +26,7 @@ class DummySkill(BaseSkillTemplate):
 
 
 def test_register_and_get_skill():
-    registry = SkillRegistry()
+    registry = Registry()
     skill = DummySkill()
 
     registry.register(skill)
@@ -37,7 +37,7 @@ def test_register_and_get_skill():
 def test_build_empty_registry():
     registry = build_empty_registry()
     with pytest.raises(
-        KeyError, match=re.escape("'Skill not found: (test_skill, v1)'")
+        KeyError, match=re.escape("'Template not found: (test_skill, v1)'")
     ):
         assert registry.get("test_skill", "v1")
 
@@ -45,7 +45,7 @@ def test_build_empty_registry():
 def test_invalid_skill_filename():
     """Test that an invalid skill filename raises SkillTemplateError."""
 
-    class InvalidSkill(BaseSkillTemplate):
+    class InvalidSkill(SkillTemplate):
         skill_path = Path("tests/unit/skills/invalid.md")
 
         def build_user_prompt(self, payload) -> str:
