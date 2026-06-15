@@ -35,7 +35,7 @@ class BaseSkillTemplate(ABC):
 
         :raise SkillTemplateError: If skill_path does not follow the required format.
         """
-        self._skill_filename_match = self._get_skill_name_and_version()
+        self._name, self._version = self._get_skill_name_and_version()
 
     @property
     def name(self) -> str:
@@ -43,7 +43,7 @@ class BaseSkillTemplate(ABC):
 
         :return: Skill name string.
         """
-        return self._skill_filename_match.group("name")
+        return self._name
 
     @property
     def version(self) -> str:
@@ -51,7 +51,7 @@ class BaseSkillTemplate(ABC):
 
         :return: Skill version string.
         """
-        return self._skill_filename_match.group("version")
+        return self._version
 
     def load_skill(self) -> str:
         """Load skill instructions from file.
@@ -83,7 +83,8 @@ class BaseSkillTemplate(ABC):
         """Build the system prompt by loading instructions from the skill file.
 
         :return: Skill instruction string.
-        :raise SkillTemplateError: If skill_path does not exist or if skill file cannot be read.
+        :raise SkillTemplateError: If skill_path does not exist, if the file
+            contains invalid UTF-8, or if the file cannot be read.
         """
         return self.load_skill()
 
@@ -98,7 +99,7 @@ class BaseSkillTemplate(ABC):
     def _get_skill_name_and_version(self) -> tuple[str, str]:
         """Parse the skill filename to extract name and version.
 
-        :return: Regex match object.
+        :return: Tuple of (name, version) strings.
         :raise SkillTemplateError: If filename does not follow the required format.
         """
         name = self.skill_path.name
@@ -106,4 +107,4 @@ class BaseSkillTemplate(ABC):
         if not match:
             msg = f"Skill filename must follow the format '{{skill_name}}_{{version}}.md', got: '{self.skill_path.name}'"
             raise SkillTemplateError(msg)
-        return match
+        return match.group("name"), match.group("version")
