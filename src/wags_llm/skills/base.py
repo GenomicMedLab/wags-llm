@@ -105,6 +105,6 @@ class BaseSkillTemplate(ABC):
         name = self.skill_path.name
         match = self._skill_file_pattern.search(name)
         if not match:
-            msg = f"Skill filename must follow the format '{{skill_name}}_{{version}}.md', got: '{self.skill_path.name}'"
+            msg = f"Skill filename must follow the format '{{skill_name}}_{{version}}.md', got path: '{self.skill_path}'"
             raise SkillTemplateError(msg)
         return match.group("name"), match.group("version")
