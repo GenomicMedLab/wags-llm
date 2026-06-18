@@ -86,7 +86,7 @@ def test_run_success():
 
     service = StructuredTaskRunner(
         client=DummyClient(),
-        prompt_registry=registry,
+        registry=registry,
     )
 
     result = service.execute_prompt(
@@ -108,7 +108,7 @@ def test_run_uses_cache():
 
     service = StructuredTaskRunner(
         client=client,
-        prompt_registry=registry,
+        registry=registry,
         cache=cache,
     )
 
@@ -139,7 +139,7 @@ def test_run_cache_miss_for_different_payload():
 
     service = StructuredTaskRunner(
         client=client,
-        prompt_registry=registry,
+        registry=registry,
         cache=cache,
     )
 
@@ -166,10 +166,10 @@ def test_run_validation_error():
 
     service = StructuredTaskRunner(
         client=BadClient(),
-        prompt_registry=registry,
+        registry=registry,
     )
 
-    with pytest.raises(RuntimeError, match="Task failed"):
+    with pytest.raises(RuntimeError, match="Prompt execution failed"):
         service.execute_prompt(
             prompt_name="test_task",
             prompt_version="v1",
