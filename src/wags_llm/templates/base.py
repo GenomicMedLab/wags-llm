@@ -8,7 +8,7 @@ from collections.abc import Mapping
 from typing import Any
 
 
-class BasePromptTemplate(ABC):
+class PromptTemplate(ABC):
     """Base prompt template.
 
     :var name: Prompt name.

@@ -1,4 +1,4 @@
-"""Test that PromptRegistry works correctly"""
+"""Test that Registry works correctly"""
 
 import re
 from collections.abc import Mapping
@@ -6,11 +6,11 @@ from typing import Any
 
 import pytest
 
-from wags_llm.prompts.base import BasePromptTemplate
-from wags_llm.prompts.registry import PromptRegistry, build_empty_registry
+from wags_llm.registry import Registry, build_empty_registry
+from wags_llm.templates.base import PromptTemplate
 
 
-class DummyPrompt(BasePromptTemplate):
+class DummyPrompt(PromptTemplate):
     """Simple prompt for registry tests."""
 
     name = "test_task"
@@ -38,7 +38,7 @@ class DummyPrompt(BasePromptTemplate):
 
 def test_register_and_get_prompt():
     """Register and retrieve a prompt."""
-    registry = PromptRegistry()
+    registry = Registry()
     prompt = DummyPrompt()
 
     registry.register(prompt)
@@ -50,6 +50,6 @@ def test_build_empty_registry():
     """Test that build_empty_registry works correctly and prompt registry raises KeyError when no prompts are registered"""
     registry = build_empty_registry()
     with pytest.raises(
-        KeyError, match=re.escape("'Prompt not found: (test_task, v1)'")
+        KeyError, match=re.escape("'Template not found: (test_task, v1)'")
     ):
         assert registry.get("test_task", "v1")
