@@ -94,7 +94,7 @@ class BedrockClaudeJsonClient(LLMJsonClient):
             ],
             "inferenceConfig": {
                 "maxTokens": self.max_tokens,
-                "temperature": 0,
+                "temperature": self.temperature,
             },
         }
 
