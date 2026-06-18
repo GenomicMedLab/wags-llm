@@ -10,7 +10,7 @@ from wags_llm.templates.skill_template import SkillTemplate, SkillTemplateError
 
 
 class DummySkill(SkillTemplate):
-    skill_path = Path("tests/unit/skills/test_skill_v1.md")
+    skill_path = Path("tests/unit/skills/test_skill_0.1.0.md")
 
     def build_user_prompt(self, payload: Mapping[str, Any]) -> str:
         """Build the user prompt.
@@ -31,15 +31,15 @@ def test_register_and_get_skill():
 
     registry.register(skill)
 
-    assert registry.get("test_skill", "v1") is skill
+    assert registry.get("test_skill", "0.1.0") is skill
 
 
 def test_build_empty_registry():
     registry = build_empty_registry()
     with pytest.raises(
-        KeyError, match=re.escape("'Template not found: (test_skill, v1)'")
+        KeyError, match=re.escape("'Template not found: (test_skill, 0.1.0)'")
     ):
-        assert registry.get("test_skill", "v1")
+        assert registry.get("test_skill", "0.1.0")
 
 
 def test_invalid_skill_filename():
