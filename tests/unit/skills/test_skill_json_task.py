@@ -1,5 +1,6 @@
-"""Test that StructuredTaskRunner works correctly"""
+"""Test that StructuredTaskRunner works correctly for skills"""
 
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -7,20 +8,25 @@ from pydantic import BaseModel
 
 from wags_llm.cache.in_memory import InMemoryCache
 from wags_llm.client.base import InvokeJsonResponse, LLMJsonClient
-from wags_llm.prompts.base import BasePromptTemplate
-from wags_llm.prompts.registry import PromptRegistry
 from wags_llm.services.structured_task import StructuredTaskRunner
+from wags_llm.skills.base import BaseSkillTemplate, SkillTemplateError
+from wags_llm.skills.registry import SkillRegistry
 
 
-class DummyPrompt(BasePromptTemplate):
-    """Simple prompt for service tests."""
+class DummySkill(BaseSkillTemplate):
+    """Simple skill for service tests."""
 
-    name = "test_task"
-    version = "v1"
+    skill_path = Path("tests/unit/skills/test_skill_v1.md")
 
-    def build_system_prompt(self) -> str:
-        """Build the system prompt."""
-        return "Return valid JSON only."
+    def build_user_prompt(self, payload) -> str:
+        """Build the user prompt."""
+        return f"Payload: {payload}"
+
+
+class MissingFileSkill(BaseSkillTemplate):
+    """Missing skill file for service tests."""
+
+    skill_path = Path("tests/unit/skills/does_not_exist_v1.md")
 
     def build_user_prompt(self, payload) -> str:
         """Build the user prompt."""
@@ -79,19 +85,19 @@ class ResultModel(BaseModel):
     value: int
 
 
-def test_run_success():
-    """Test that run method works correctly"""
-    registry = PromptRegistry()
-    registry.register(DummyPrompt())
+def test_execute_skill_success():
+    """Test that execute_skill works correctly."""
+    registry = SkillRegistry()
+    registry.register(DummySkill())
 
     service = StructuredTaskRunner(
         client=DummyClient(),
-        prompt_registry=registry,
+        skill_registry=registry,
     )
 
-    result = service.execute_prompt(
-        prompt_name="test_task",
-        prompt_version="v1",
+    result = service.execute_skill(
+        skill_name="test_skill",
+        skill_version="v1",
         payload={"text": "hello"},
         response_model=ResultModel,
     )
@@ -99,28 +105,48 @@ def test_run_success():
     assert result.value == 1
 
 
-def test_run_uses_cache():
-    """Test that run method works correctly with cache"""
-    registry = PromptRegistry()
-    registry.register(DummyPrompt())
+def test_execute_skill_file_not_found():
+    """Test that execute_skill raises FileNotFoundError when skill file does not exist."""
+
+    registry = SkillRegistry()
+    registry.register(MissingFileSkill())
+
+    service = StructuredTaskRunner(
+        client=DummyClient(),
+        skill_registry=registry,
+    )
+
+    with pytest.raises(SkillTemplateError):
+        service.execute_skill(
+            skill_name="does_not_exist",
+            skill_version="v1",
+            payload={"text": "hello"},
+            response_model=ResultModel,
+        )
+
+
+def test_execute_skill_uses_cache():
+    """Test that execute_skill works correctly with cache."""
+    registry = SkillRegistry()
+    registry.register(DummySkill())
     client = DummyClient()
     cache = InMemoryCache()
 
     service = StructuredTaskRunner(
         client=client,
-        prompt_registry=registry,
+        skill_registry=registry,
         cache=cache,
     )
 
-    result1 = service.execute_prompt(
-        prompt_name="test_task",
-        prompt_version="v1",
+    result1 = service.execute_skill(
+        skill_name="test_skill",
+        skill_version="v1",
         payload={"x": 1},
         response_model=ResultModel,
     )
-    result2 = service.execute_prompt(
-        prompt_name="test_task",
-        prompt_version="v1",
+    result2 = service.execute_skill(
+        skill_name="test_skill",
+        skill_version="v1",
         payload={"x": 1},
         response_model=ResultModel,
     )
@@ -130,28 +156,28 @@ def test_run_uses_cache():
     assert client.calls == 1
 
 
-def test_run_cache_miss_for_different_payload():
-    """Test that run method works correctly with cache that uses different payload"""
-    registry = PromptRegistry()
-    registry.register(DummyPrompt())
+def test_execute_skill_cache_miss_for_different_payload():
+    """Test that execute_skill cache misses on different payload."""
+    registry = SkillRegistry()
+    registry.register(DummySkill())
     client = DummyClient()
     cache = InMemoryCache()
 
     service = StructuredTaskRunner(
         client=client,
-        prompt_registry=registry,
+        skill_registry=registry,
         cache=cache,
     )
 
-    service.execute_prompt(
-        prompt_name="test_task",
-        prompt_version="v1",
+    service.execute_skill(
+        skill_name="test_skill",
+        skill_version="v1",
         payload={"x": 1},
         response_model=ResultModel,
     )
-    service.execute_prompt(
-        prompt_name="test_task",
-        prompt_version="v1",
+    service.execute_skill(
+        skill_name="test_skill",
+        skill_version="v1",
         payload={"x": 2},
         response_model=ResultModel,
     )
@@ -159,20 +185,20 @@ def test_run_cache_miss_for_different_payload():
     assert client.calls == 2
 
 
-def test_run_validation_error():
-    """Test that run raises error when response validation fails."""
-    registry = PromptRegistry()
-    registry.register(DummyPrompt())
+def test_execute_skill_validation_error():
+    """Test that execute_skill raises RuntimeError when response validation fails."""
+    registry = SkillRegistry()
+    registry.register(DummySkill())
 
     service = StructuredTaskRunner(
         client=BadClient(),
-        prompt_registry=registry,
+        skill_registry=registry,
     )
 
     with pytest.raises(RuntimeError, match="Task failed"):
-        service.execute_prompt(
-            prompt_name="test_task",
-            prompt_version="v1",
+        service.execute_skill(
+            skill_name="test_skill",
+            skill_version="v1",
             payload={"text": "hello"},
             response_model=ResultModel,
         )
