@@ -6,19 +6,22 @@
 
 import json
 import logging
-from typing import Any
+from typing import Any, Literal
 
 import boto3
 
 from wags_llm.client.base import InvokeJsonResponse, LLMJsonClient
 from wags_llm.client.exceptions import (
     LLMEmptyResponseError,
+    LLMInvalidEffortError,
     LLMInvocationError,
     LLMJsonDecodeError,
     LLMResponseFormatError,
 )
 
 _logger = logging.getLogger(__name__)
+_VALID_EFFORT_LEVELS = ("high", "medium", "low")
+_EFFORT_BETA_HEADER = "effort-2025-11-24"
 
 
 class BedrockClaudeJsonClient(LLMJsonClient):
@@ -31,6 +34,7 @@ class BedrockClaudeJsonClient(LLMJsonClient):
         profile_name: str,
         max_tokens: int = 300,
         temperature: float = 0.0,
+        effort: Literal["high", "medium", "low"] | None = None,
     ) -> None:
         """Initialize the Bedrock Claude client.
 
@@ -39,18 +43,26 @@ class BedrockClaudeJsonClient(LLMJsonClient):
         :param profile_name: AWS profile name.
         :param max_tokens: Maximum number of tokens to request from the model.
         :param temperature: Sampling temperature.
+        :param effort: effort level for Claude Opus 4.5 (beta): "high", "medium", "low", or None (default; Bedrock falls back to "high").
+        :raise LLMInvalidEffortError: If effort is not "high", "medium", "low", or None.
         """
+        if effort is not None and effort not in _VALID_EFFORT_LEVELS:
+            msg = f"Invalid effort '{effort}'; must be one of 'high', 'medium', 'low', or None."
+            raise LLMInvalidEffortError(msg)
+
         _logger.debug(
-            "BedrockClaudeJsonClient config: model_id='%s', region_name='%s', profile_name='%s', max_tokens=%i, temperature=%f",
+            "BedrockClaudeJsonClient config: model_id='%s', region_name='%s', profile_name='%s', max_tokens=%i, temperature=%f, effort=%s",
             model_id,
             region_name,
             profile_name,
             max_tokens,
             temperature,
+            effort,
         )
         self.model_id = model_id
         self.max_tokens = max_tokens
         self.temperature = temperature
+        self.effort = effort
 
         session = boto3.Session(profile_name=profile_name)
         self._client = session.client("bedrock-runtime", region_name=region_name)
@@ -97,6 +109,14 @@ class BedrockClaudeJsonClient(LLMJsonClient):
                 "temperature": self.temperature,
             },
         }
+
+        if self.effort:
+            converse_params["additionalModelRequestFields"] = {
+                "anthropic_beta": [_EFFORT_BETA_HEADER],
+                "output_config": {
+                    "effort": self.effort,
+                },
+            }
 
         if json_schema:
             converse_params["outputConfig"] = {
