@@ -16,8 +16,9 @@ import hashlib
 import json
 import logging
 from collections.abc import Mapping
+from enum import Enum
 from os import getenv
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
@@ -29,6 +30,13 @@ from wags_llm.registry import Registry, build_empty_registry
 _logger = logging.getLogger(__name__)
 
 MAX_LOG_CHARS = int(getenv("MAX_LOG_CHARS", "500"))
+
+
+class TaskKind(Enum):
+    """Enum for task types supported by StructuredTaskRunner."""
+
+    SKILL = "Skill"
+    PROMPT = "Prompt"
 
 
 class CacheLookupResult(BaseModel):
@@ -82,7 +90,7 @@ class StructuredTaskRunner:
             version=skill_version,
             payload=payload,
             response_model=response_model,
-            kind="Skill",
+            kind=TaskKind.SKILL,
         )
 
     def execute_prompt(
@@ -106,7 +114,7 @@ class StructuredTaskRunner:
             version=prompt_version,
             payload=payload,
             response_model=response_model,
-            kind="Prompt",
+            kind=TaskKind.PROMPT,
         )
 
     def _execute(
@@ -115,7 +123,7 @@ class StructuredTaskRunner:
         version: str,
         payload: Mapping[str, Any],
         response_model: type[BaseModel],
-        kind: Literal["Skill", "Prompt"],
+        kind: TaskKind,
     ) -> BaseModel:
         """Execute a task and return validated output.
 
@@ -151,7 +159,7 @@ class StructuredTaskRunner:
                 self.cache.set(cache_result.cache_key, result.model_dump())
 
         except (LLMClientError, ValidationError) as exc:
-            msg = f"{kind} execution failed for {name} version {version}: {exc}"
+            msg = f"{kind.value} execution failed for {name} version {version}: {exc}"
             _logger.exception(msg)
             raise RuntimeError(msg) from exc
         else:
