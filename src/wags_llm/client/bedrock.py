@@ -21,7 +21,6 @@ from wags_llm.client.exceptions import (
 
 _logger = logging.getLogger(__name__)
 _VALID_EFFORT_LEVELS = ("high", "medium", "low")
-_EFFORT_BETA_HEADER = "effort-2025-11-24"
 
 
 class BedrockClaudeJsonClient(LLMJsonClient):
@@ -43,7 +42,7 @@ class BedrockClaudeJsonClient(LLMJsonClient):
         :param profile_name: AWS profile name.
         :param max_tokens: Maximum number of tokens to request from the model.
         :param temperature: Sampling temperature.
-        :param effort: effort level for Claude Opus 4.5 (beta): "high", "medium", "low", or None (default; Bedrock falls back to "high").
+        :param effort: Optional adaptive thinking effort level for supported Claude models using Bedrock Converse: "high", "medium", "low", or None to use the model default.
         :raise LLMInvalidEffortError: If effort is not "high", "medium", "low", or None.
         """
         if effort is not None and effort not in _VALID_EFFORT_LEVELS:
@@ -110,13 +109,11 @@ class BedrockClaudeJsonClient(LLMJsonClient):
             },
         }
 
+        adaptive_thinking_params: dict[str, Any] = {"thinking": {"type": "adaptive"}}
         if self.effort:
-            converse_params["additionalModelRequestFields"] = {
-                "anthropic_beta": [_EFFORT_BETA_HEADER],
-                "output_config": {
-                    "effort": self.effort,
-                },
-            }
+            adaptive_thinking_params["output_config"] = {"effort": self.effort}
+
+        converse_params["additionalModelRequestFields"] = adaptive_thinking_params
 
         if json_schema:
             converse_params["outputConfig"] = {
