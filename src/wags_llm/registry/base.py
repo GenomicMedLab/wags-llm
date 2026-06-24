@@ -1,6 +1,7 @@
 """Registry.
 
 Maps (name, version) -> template instance.
+Template instances can be either prompts or skills.
 
 Users typically:
 * create prompts or skills in their project
