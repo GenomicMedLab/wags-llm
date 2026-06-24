@@ -5,7 +5,6 @@ from unittest.mock import patch
 import pytest
 
 from wags_llm.client.bedrock import (
-    _EFFORT_BETA_HEADER,
     BedrockClaudeJsonClient,
     LLMEmptyResponseError,
     LLMInvalidEffortError,
@@ -101,7 +100,7 @@ def test_invoke_json_with_effort():
         )
 
     assert fake_runtime_client.captured_request["additionalModelRequestFields"] == {
-        "anthropic_beta": [_EFFORT_BETA_HEADER],
+        "thinking": {"type": "adaptive"},
         "output_config": {"effort": "medium"},
     }
 
@@ -127,7 +126,9 @@ def test_invoke_json_without_effort_omits_field():
             user_prompt=TEST_USER_PROMPT,
         )
 
-    assert "additionalModelRequestFields" not in fake_runtime_client.captured_request
+    assert fake_runtime_client.captured_request["additionalModelRequestFields"] == {
+        "thinking": {"type": "adaptive"},
+    }
 
 
 def test_invalid_effort_raises():
