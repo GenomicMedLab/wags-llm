@@ -169,7 +169,7 @@ def test_run_validation_error():
         registry=registry,
     )
 
-    with pytest.raises(RuntimeError, match="Prompt execution failed"):
+    with pytest.raises(RuntimeError, match="prompt execution failed"):
         service.execute_prompt(
             prompt_name="test_task",
             prompt_version="v1",

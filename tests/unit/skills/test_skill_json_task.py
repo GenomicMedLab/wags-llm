@@ -195,7 +195,7 @@ def test_execute_skill_validation_error():
         registry=registry,
     )
 
-    with pytest.raises(RuntimeError, match="Skill execution failed"):
+    with pytest.raises(RuntimeError, match="skill execution failed"):
         service.execute_skill(
             skill_name="test_skill",
             skill_version="0.1.0",

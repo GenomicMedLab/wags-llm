@@ -5,11 +5,13 @@ from typing import Any
 
 import pytest
 
-from wags_llm.registry import Registry, build_empty_registry
+from wags_llm.registry import Registry, TaskType, build_empty_registry
 from wags_llm.templates.skill_template import SkillTemplate, SkillTemplateError
 
 
 class DummySkill(SkillTemplate):
+    """Simple skill for registry tests."""
+
     skill_path = Path("tests/unit/skills/test_skill_0.1.0.md")
 
     def build_user_prompt(self, payload: Mapping[str, Any]) -> str:
@@ -31,15 +33,15 @@ def test_register_and_get_skill():
 
     registry.register(skill)
 
-    assert registry.get("test_skill", "0.1.0") is skill
+    assert registry.get("test_skill", "0.1.0", TaskType.SKILL) is skill
 
 
 def test_build_empty_registry():
     registry = build_empty_registry()
     with pytest.raises(
-        KeyError, match=re.escape("'Template not found: (test_skill, 0.1.0)'")
+        KeyError, match=re.escape("'Template not found: (test_skill, 0.1.0, skill)'")
     ):
-        assert registry.get("test_skill", "0.1.0")
+        assert registry.get("test_skill", "0.1.0", TaskType.SKILL)
 
 
 def test_invalid_skill_filename():
