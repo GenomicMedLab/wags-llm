@@ -16,7 +16,6 @@ import hashlib
 import json
 import logging
 from collections.abc import Mapping
-from enum import Enum
 from os import getenv
 from typing import Any
 
@@ -25,18 +24,11 @@ from pydantic import BaseModel, ValidationError
 from wags_llm.cache.base import BaseCache
 from wags_llm.client.base import LLMJsonClient
 from wags_llm.client.exceptions import LLMClientError
-from wags_llm.registry import Registry, build_empty_registry
+from wags_llm.registry import Registry, TaskType, build_empty_registry
 
 _logger = logging.getLogger(__name__)
 
 MAX_LOG_CHARS = int(getenv("MAX_LOG_CHARS", "500"))
-
-
-class TaskKind(Enum):
-    """Enum for task types supported by StructuredTaskRunner."""
-
-    SKILL = "Skill"
-    PROMPT = "Prompt"
 
 
 class CacheLookupResult(BaseModel):
@@ -90,7 +82,7 @@ class StructuredTaskRunner:
             version=skill_version,
             payload=payload,
             response_model=response_model,
-            kind=TaskKind.SKILL,
+            task_type=TaskType.SKILL,
         )
 
     def execute_prompt(
@@ -114,7 +106,7 @@ class StructuredTaskRunner:
             version=prompt_version,
             payload=payload,
             response_model=response_model,
-            kind=TaskKind.PROMPT,
+            task_type=TaskType.PROMPT,
         )
 
     def _execute(
@@ -123,7 +115,7 @@ class StructuredTaskRunner:
         version: str,
         payload: Mapping[str, Any],
         response_model: type[BaseModel],
-        kind: TaskKind,
+        task_type: TaskType,
     ) -> BaseModel:
         """Execute a task and return validated output.
 
@@ -131,11 +123,11 @@ class StructuredTaskRunner:
         :param version: Registered task version.
         :param payload: JSON-serializable task data.
         :param response_model: Pydantic model for validation.
-        :param kind: Display label for the registered task type, either "Skill" or "Prompt".
+        :param task_type: Registered task type, either skill or prompt.
         :return: Validated task result.
         :raise RuntimeError: If execution or validation fails.
         """
-        registered_task = self.registry.get(name, version)
+        registered_task = self.registry.get(name, version, task_type)
 
         cache_result = self._check_cache(
             name=name,
@@ -159,7 +151,7 @@ class StructuredTaskRunner:
                 self.cache.set(cache_result.cache_key, result.model_dump())
 
         except (LLMClientError, ValidationError) as exc:
-            msg = f"{kind.value} execution failed for {name} version {version}: {exc}"
+            msg = f"{task_type.value} execution failed for {name} version {version}: {exc}"
             _logger.exception(msg)
             raise RuntimeError(msg) from exc
         else:
