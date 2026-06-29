@@ -19,7 +19,3 @@ class LLMEmptyResponseError(LLMClientError):
 
 class LLMJsonDecodeError(LLMClientError):
     """Raised when the model output is not valid JSON."""
-
-
-class LLMInvalidEffortError(LLMClientError):
-    """Raised when the effort parameter is not a valid value."""

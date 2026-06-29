@@ -126,9 +126,7 @@ def test_invoke_json_without_effort_omits_field():
             user_prompt=TEST_USER_PROMPT,
         )
 
-    assert fake_runtime_client.captured_request["additionalModelRequestFields"] == {
-        "thinking": {"type": "adaptive"},
-    }
+    assert "additionalModelRequestFields" not in fake_runtime_client.captured_request
 
 
 def test_invalid_effort_raises():

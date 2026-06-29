@@ -6,21 +6,33 @@
 
 import json
 import logging
+from enum import Enum
 from typing import Any, Literal
 
 import boto3
 
 from wags_llm.client.base import InvokeJsonResponse, LLMJsonClient
 from wags_llm.client.exceptions import (
+    LLMClientError,
     LLMEmptyResponseError,
-    LLMInvalidEffortError,
     LLMInvocationError,
     LLMJsonDecodeError,
     LLMResponseFormatError,
 )
 
 _logger = logging.getLogger(__name__)
-_VALID_EFFORT_LEVELS = ("high", "medium", "low")
+
+
+class LLMInvalidEffortError(LLMClientError):
+    """Raised when the effort parameter is not a valid value."""
+
+
+class _EffortLevel(Enum):
+    """Internal supported Claude thinking effort levels."""
+
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
 
 
 class BedrockClaudeJsonClient(LLMJsonClient):
@@ -45,9 +57,12 @@ class BedrockClaudeJsonClient(LLMJsonClient):
         :param effort: Optional adaptive thinking effort level for supported Claude models using Bedrock Converse: "high", "medium", "low", or None to use the model default.
         :raise LLMInvalidEffortError: If effort is not "high", "medium", "low", or None.
         """
-        if effort is not None and effort not in _VALID_EFFORT_LEVELS:
-            msg = f"Invalid effort '{effort}'; must be one of 'high', 'medium', 'low', or None."
-            raise LLMInvalidEffortError(msg)
+        if effort is not None:
+            try:
+                effort = _EffortLevel(effort)
+            except ValueError as exc:
+                msg = f"Invalid effort '{effort}'; must be one of 'high', 'medium', 'low', or None."
+                raise LLMInvalidEffortError(msg) from exc
 
         _logger.debug(
             "BedrockClaudeJsonClient config: model_id='%s', region_name='%s', profile_name='%s', max_tokens=%i, temperature=%f, effort=%s",
@@ -56,7 +71,7 @@ class BedrockClaudeJsonClient(LLMJsonClient):
             profile_name,
             max_tokens,
             temperature,
-            effort,
+            effort.value if effort else None,
         )
         self.model_id = model_id
         self.max_tokens = max_tokens
@@ -108,12 +123,11 @@ class BedrockClaudeJsonClient(LLMJsonClient):
                 "temperature": self.temperature,
             },
         }
-
-        adaptive_thinking_params: dict[str, Any] = {"thinking": {"type": "adaptive"}}
         if self.effort:
-            adaptive_thinking_params["output_config"] = {"effort": self.effort}
-
-        converse_params["additionalModelRequestFields"] = adaptive_thinking_params
+            converse_params["additionalModelRequestFields"] = {
+                "thinking": {"type": "adaptive"},
+                "output_config": {"effort": self.effort.value},
+            }
 
         if json_schema:
             converse_params["outputConfig"] = {
