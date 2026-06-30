@@ -1,6 +1,6 @@
 """Registry.
 
-Maps (name, version, task_type) -> template instance.
+Maps (name, version, TemplateType) -> template instance.
 Template instances can be either prompts or skills.
 
 Users typically:
@@ -9,19 +9,20 @@ Users typically:
 """
 
 import logging
-from enum import Enum
+from types import MappingProxyType
 
-from wags_llm.templates.base import PromptTemplate
+from wags_llm.templates.base import TemplateType
+from wags_llm.templates.prompt_template import PromptTemplate
 from wags_llm.templates.skill_template import SkillTemplate
 
 _logger = logging.getLogger(__name__)
 
-
-class TaskType(Enum):
-    """Enum for task types supported by StructuredTaskRunner."""
-
-    SKILL = "skill"
-    PROMPT = "prompt"
+_TEMPLATE_CLASS_TO_TYPE = MappingProxyType(
+    {
+        SkillTemplate: TemplateType.SKILL,
+        PromptTemplate: TemplateType.PROMPT,
+    }
+)
 
 
 class Registry:
@@ -30,27 +31,35 @@ class Registry:
     def __init__(self) -> None:
         """Initialize an empty template registry."""
         self._templates: dict[
-            tuple[str, str, TaskType], PromptTemplate | SkillTemplate
+            tuple[str, str, TemplateType], PromptTemplate | SkillTemplate
         ] = {}
 
     def register(self, template: PromptTemplate | SkillTemplate) -> None:
         """Register a template.
 
         :param template: Template instance to register.
+        :raise TypeError: If the template type is unsupported.
+        :raise ValueError: If a template with the same name, version, and template type is already registered.
         """
-        task_type = self._get_task_type(template)
+        for cls, mapped_type in _TEMPLATE_CLASS_TO_TYPE.items():
+            if isinstance(template, cls):
+                template_type = mapped_type
+                break
+        else:
+            msg = f"Unsupported template type: {type(template)}"
+            raise TypeError(msg)
 
-        key = (template.name, template.version, task_type)
+        key = (template.name, template.version, template_type)
 
         _logger.debug(
-            "Registering template: name='%s', version='%s', task_type='%s'",
+            "Registering template: name='%s', version='%s', template_type='%s'",
             template.name,
             template.version,
-            task_type.value,
+            template_type.value,
         )
 
         if key in self._templates:
-            msg = f"Template already registered:({template.name}, {template.version}, {task_type.value})"
+            msg = f"Template already registered:({template.name}, {template.version}, {template_type.value})"
             _logger.error(msg)
             raise ValueError(msg)
 
@@ -60,38 +69,24 @@ class Registry:
         self,
         name: str,
         version: str,
-        task_type: TaskType,
+        template_type: TemplateType,
     ) -> PromptTemplate | SkillTemplate:
         """Retrieve a template by name and version.
 
         :param name: Template name.
         :param version: Template version.
-        :param task_type: Template type.
+        :param template_type: Template type.
         :return: Registered template.
         :raise KeyError: If template not found.
         """
-        key = (name, version, task_type)
+        key = (name, version, template_type)
 
         try:
             return self._templates[key]
         except KeyError as exc:
-            msg = f"Template not found: ({name}, {version}, {task_type.value})"
+            msg = f"Template not found: ({name}, {version}, {template_type.value})"
             _logger.exception(msg)
             raise KeyError(msg) from exc
-
-    def _get_task_type(self, template: PromptTemplate | SkillTemplate) -> TaskType:
-        """Determine the task type for a template instance.
-
-        :param template: Template instance to inspect.
-        :return: Task type corresponding to the template.
-        :raise TypeError: If the template type is unsupported.
-        """
-        if isinstance(template, SkillTemplate):
-            return TaskType.SKILL
-        if isinstance(template, PromptTemplate):
-            return TaskType.PROMPT
-        msg = f"Unsupported template type: {type(template)}"
-        raise TypeError(msg)
 
 
 def build_empty_registry() -> Registry:
