@@ -9,7 +9,7 @@ from wags_llm.cache.in_memory import InMemoryCache
 from wags_llm.client.base import InvokeJsonResponse, LLMJsonClient
 from wags_llm.registry import Registry
 from wags_llm.services.structured_task import StructuredTaskRunner
-from wags_llm.templates.base import PromptTemplate
+from wags_llm.templates.prompt_template import PromptTemplate
 
 
 class DummyPrompt(PromptTemplate):

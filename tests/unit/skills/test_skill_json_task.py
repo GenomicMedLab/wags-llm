@@ -16,7 +16,7 @@ from wags_llm.templates.skill_template import SkillTemplate, SkillTemplateError
 class DummySkill(SkillTemplate):
     """Simple skill for service tests."""
 
-    skill_path = Path("tests/unit/skills/test_skill_0.1.0.md")
+    skill_path = Path("tests/examples/test_example_0.1.0.md")
 
     def build_user_prompt(self, payload) -> str:
         """Build the user prompt."""
@@ -26,7 +26,7 @@ class DummySkill(SkillTemplate):
 class MissingFileSkill(SkillTemplate):
     """Missing skill file for service tests."""
 
-    skill_path = Path("tests/unit/skills/does_not_exist_0.1.0.md")
+    skill_path = Path("tests/examples/does_not_exist_0.1.0.md")
 
     def build_user_prompt(self, payload) -> str:
         """Build the user prompt."""
@@ -96,7 +96,7 @@ def test_execute_skill_success():
     )
 
     result = service.execute_skill(
-        skill_name="test_skill",
+        skill_name="test_example",
         skill_version="0.1.0",
         payload={"text": "hello"},
         response_model=ResultModel,
@@ -139,13 +139,13 @@ def test_execute_skill_uses_cache():
     )
 
     result1 = service.execute_skill(
-        skill_name="test_skill",
+        skill_name="test_example",
         skill_version="0.1.0",
         payload={"x": 1},
         response_model=ResultModel,
     )
     result2 = service.execute_skill(
-        skill_name="test_skill",
+        skill_name="test_example",
         skill_version="0.1.0",
         payload={"x": 1},
         response_model=ResultModel,
@@ -170,13 +170,13 @@ def test_execute_skill_cache_miss_for_different_payload():
     )
 
     service.execute_skill(
-        skill_name="test_skill",
+        skill_name="test_example",
         skill_version="0.1.0",
         payload={"x": 1},
         response_model=ResultModel,
     )
     service.execute_skill(
-        skill_name="test_skill",
+        skill_name="test_example",
         skill_version="0.1.0",
         payload={"x": 2},
         response_model=ResultModel,
@@ -197,7 +197,7 @@ def test_execute_skill_validation_error():
 
     with pytest.raises(RuntimeError, match="skill execution failed"):
         service.execute_skill(
-            skill_name="test_skill",
+            skill_name="test_example",
             skill_version="0.1.0",
             payload={"text": "hello"},
             response_model=ResultModel,
