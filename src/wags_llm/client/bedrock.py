@@ -6,8 +6,8 @@
 
 import json
 import logging
-from enum import Enum
-from typing import Any, Literal
+from enum import StrEnum
+from typing import Any
 
 import boto3
 
@@ -27,12 +27,13 @@ class LLMInvalidEffortError(LLMClientError):
     """Raised when the effort parameter is not a valid value."""
 
 
-class _EffortLevel(Enum):
+class EffortLevel(StrEnum):
     """Internal supported Claude thinking effort levels."""
 
     HIGH = "high"
     MEDIUM = "medium"
     LOW = "low"
+    MAX = "max"
 
 
 class BedrockClaudeJsonClient(LLMJsonClient):
@@ -45,7 +46,7 @@ class BedrockClaudeJsonClient(LLMJsonClient):
         profile_name: str,
         max_tokens: int = 300,
         temperature: float = 0.0,
-        effort: Literal["high", "medium", "low"] | None = None,
+        effort: EffortLevel | str | None = None,
     ) -> None:
         """Initialize the Bedrock Claude client.
 
@@ -54,14 +55,14 @@ class BedrockClaudeJsonClient(LLMJsonClient):
         :param profile_name: AWS profile name.
         :param max_tokens: Maximum number of tokens to request from the model.
         :param temperature: Sampling temperature.
-        :param effort: Optional adaptive thinking effort level for supported Claude models using Bedrock Converse: "high", "medium", "low", or None to use the model default.
+        :param effort: Optional adaptive thinking effort level: "high", "medium", "low", "max", or None for model default. "max" is Opus 4.6 only; other models raise an error.
         :raise LLMInvalidEffortError: If effort is not "high", "medium", "low", or None.
         """
         if effort is not None:
             try:
-                effort = _EffortLevel(effort)
+                effort = EffortLevel(effort)
             except ValueError as exc:
-                msg = f"Invalid effort '{effort}'; must be one of 'high', 'medium', 'low', or None."
+                msg = f"Invalid effort '{effort}'; must be one of 'high', 'medium', 'low', 'max', or None."
                 raise LLMInvalidEffortError(msg) from exc
 
         _logger.debug(
