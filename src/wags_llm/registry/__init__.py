@@ -1,6 +1,6 @@
-"""Prompt interfaces and registry.
+"""Registry module.
 
-Define and manage versioned prompt templates.
+Store and retrieve versioned prompt and skill templates.
 """
 
 from wags_llm.registry.base import Registry, build_empty_registry

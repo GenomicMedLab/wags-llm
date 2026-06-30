@@ -17,7 +17,7 @@ import json
 import logging
 from collections.abc import Mapping
 from os import getenv
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
@@ -25,6 +25,7 @@ from wags_llm.cache.base import BaseCache
 from wags_llm.client.base import LLMJsonClient
 from wags_llm.client.exceptions import LLMClientError
 from wags_llm.registry import Registry, build_empty_registry
+from wags_llm.templates import TemplateType
 
 _logger = logging.getLogger(__name__)
 
@@ -82,7 +83,7 @@ class StructuredTaskRunner:
             version=skill_version,
             payload=payload,
             response_model=response_model,
-            kind="Skill",
+            template_type=TemplateType.SKILL,
         )
 
     def execute_prompt(
@@ -106,7 +107,7 @@ class StructuredTaskRunner:
             version=prompt_version,
             payload=payload,
             response_model=response_model,
-            kind="Prompt",
+            template_type=TemplateType.PROMPT,
         )
 
     def _execute(
@@ -115,7 +116,7 @@ class StructuredTaskRunner:
         version: str,
         payload: Mapping[str, Any],
         response_model: type[BaseModel],
-        kind: Literal["Skill", "Prompt"],
+        template_type: TemplateType,
     ) -> BaseModel:
         """Execute a task and return validated output.
 
@@ -123,11 +124,11 @@ class StructuredTaskRunner:
         :param version: Registered task version.
         :param payload: JSON-serializable task data.
         :param response_model: Pydantic model for validation.
-        :param kind: Display label for the registered task type, either "Skill" or "Prompt".
+        :param template_type: Registered template type, either skill or prompt.
         :return: Validated task result.
         :raise RuntimeError: If execution or validation fails.
         """
-        registered_task = self.registry.get(name, version)
+        registered_task = self.registry.get(name, version, template_type)
 
         cache_result = self._check_cache(
             name=name,
@@ -151,7 +152,7 @@ class StructuredTaskRunner:
                 self.cache.set(cache_result.cache_key, result.model_dump())
 
         except (LLMClientError, ValidationError) as exc:
-            msg = f"{kind} execution failed for {name} version {version}: {exc}"
+            msg = f"{template_type.value} execution failed for {name} version {version}: {exc}"
             _logger.exception(msg)
             raise RuntimeError(msg) from exc
         else:

@@ -7,7 +7,7 @@ import logging
 import re
 from pathlib import Path
 
-from wags_llm.templates.base import PromptTemplate
+from wags_llm.templates.base import BaseTemplate, TemplateType
 
 logger = logging.getLogger(__name__)
 
@@ -16,17 +16,18 @@ class SkillTemplateError(Exception):
     """Raise custom exceptions for SkillTemplateError."""
 
 
-class SkillTemplate(PromptTemplate):
+class SkillTemplate(BaseTemplate):
     """Base skill template.
 
     :var skill_path: Path to the skill `.md` file. Must follow the format
         {skill_name}_{version}.md (e.g. entity_detection_v1.md).
         If the filename does not follow this format, a SkillTemplateError
         will be raised on initialization.
+    :var template_type: Identifies this as a skill template; always set to TemplateType.SKILL
     """
 
     skill_path: Path
-
+    template_type = TemplateType.SKILL
     _skill_file_pattern = re.compile(r"^(?P<name>.+)_(?P<version>[^_]+)\.md$")
 
     def __init__(self) -> None:
