@@ -5,11 +5,11 @@ Users extend this to define new tasks.
 
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 
-class TemplateType(Enum):
+class TemplateType(StrEnum):
     """Enum for template types supported by StructuredTaskRunner."""
 
     SKILL = "skill"

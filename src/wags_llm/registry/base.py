@@ -71,7 +71,7 @@ class Registry:
         version: str,
         template_type: TemplateType,
     ) -> PromptTemplate | SkillTemplate:
-        """Retrieve a template by name and version.
+        """Retrieve a template by name, version, and template type.
 
         :param name: Template name.
         :param version: Template version.
