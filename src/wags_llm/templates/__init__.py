@@ -1,6 +1,6 @@
 """Prompt interfaces and registry.
 
-Define and manage versioned prompt templates.
+Define and manage versioned prompt and skill templates.
 """
 
 from wags_llm.templates.base import BaseTemplate, TemplateType
