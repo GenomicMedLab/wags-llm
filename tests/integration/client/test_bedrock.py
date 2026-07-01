@@ -6,6 +6,7 @@ import pytest
 
 from wags_llm.client.bedrock import (
     BedrockClaudeJsonClient,
+    EffortLevel,
     LLMEmptyResponseError,
     LLMInvalidEffortError,
     LLMInvocationError,
@@ -91,7 +92,7 @@ def test_invoke_json_with_effort():
             model_id=TEST_MODEL_ID,
             region_name=TEST_REGION_NAME,
             profile_name=TEST_PROFILE_NAME,
-            effort="medium",
+            effort=EffortLevel.MEDIUM,
         )
 
         client.invoke_json(
@@ -131,7 +132,7 @@ def test_invoke_json_without_effort_omits_field():
 
 def test_invalid_effort_raises():
     """Test that an invalid effort value raises LLMInvalidEffortError at construction."""
-    with pytest.raises(LLMInvalidEffortError, match=r"Invalid effort"):
+    with pytest.raises(LLMInvalidEffortError, match=r"Effort must"):
         BedrockClaudeJsonClient(
             model_id=TEST_MODEL_ID,
             region_name=TEST_REGION_NAME,

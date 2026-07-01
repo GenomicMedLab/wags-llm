@@ -24,7 +24,7 @@ _logger = logging.getLogger(__name__)
 
 
 class LLMInvalidEffortError(LLMClientError):
-    """Raised when the effort parameter is not a valid value."""
+    """Raised when the effort parameter is not an EffortLevel value or None."""
 
 
 class EffortLevel(StrEnum):
@@ -46,7 +46,7 @@ class BedrockClaudeJsonClient(LLMJsonClient):
         profile_name: str,
         max_tokens: int = 300,
         temperature: float = 0.0,
-        effort: EffortLevel | str | None = None,
+        effort: EffortLevel | None = None,
     ) -> None:
         """Initialize the Bedrock Claude client.
 
@@ -55,15 +55,12 @@ class BedrockClaudeJsonClient(LLMJsonClient):
         :param profile_name: AWS profile name.
         :param max_tokens: Maximum number of tokens to request from the model.
         :param temperature: Sampling temperature.
-        :param effort: Optional adaptive thinking effort level: "high", "medium", "low", "max", or None for model default. "max" is Opus 4.6 only; other models raise an error.
-        :raise LLMInvalidEffortError: If effort is not "high", "medium", "low", or None.
+        :param effort: Optional adaptive thinking effort level. Use EffortLevel or None for model default.
+        :raise LLMInvalidEffortError: If effort is not an EffortLevel enum value or None.
         """
-        if effort is not None:
-            try:
-                effort = EffortLevel(effort)
-            except ValueError as exc:
-                msg = f"Invalid effort '{effort}'; must be one of 'high', 'medium', 'low', 'max', or None."
-                raise LLMInvalidEffortError(msg) from exc
+        if effort is not None and not isinstance(effort, EffortLevel):
+            msg = "Effort must be an EffortLevel enum value or None."
+            raise LLMInvalidEffortError(msg)
 
         _logger.debug(
             "BedrockClaudeJsonClient config: model_id='%s', region_name='%s', profile_name='%s', max_tokens=%i, temperature=%f, effort=%s",
@@ -124,6 +121,7 @@ class BedrockClaudeJsonClient(LLMJsonClient):
                 "temperature": self.temperature,
             },
         }
+
         if self.effort:
             converse_params["additionalModelRequestFields"] = {
                 "thinking": {"type": "adaptive"},
