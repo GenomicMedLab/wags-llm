@@ -13,7 +13,6 @@ import boto3
 
 from wags_llm.client.base import InvokeJsonResponse, LLMJsonClient
 from wags_llm.client.exceptions import (
-    LLMClientError,
     LLMEmptyResponseError,
     LLMInvocationError,
     LLMJsonDecodeError,
@@ -23,12 +22,10 @@ from wags_llm.client.exceptions import (
 _logger = logging.getLogger(__name__)
 
 
-class LLMInvalidEffortError(LLMClientError):
-    """Raised when the effort parameter is not an EffortLevel value or None."""
-
-
 class EffortLevel(StrEnum):
-    """Internal supported Claude thinking effort levels."""
+    """Internal supported Claude thinking effort levels.
+    Use MAX for the deepest reasoning. Only supported by Claude Opus 4.6.
+    """
 
     HIGH = "high"
     MEDIUM = "medium"
@@ -56,12 +53,7 @@ class BedrockClaudeJsonClient(LLMJsonClient):
         :param max_tokens: Maximum number of tokens to request from the model.
         :param temperature: Sampling temperature.
         :param effort: Optional adaptive thinking effort level. Use EffortLevel or None for model default.
-        :raise LLMInvalidEffortError: If effort is not an EffortLevel enum value or None.
         """
-        if effort is not None and not isinstance(effort, EffortLevel):
-            msg = "Effort must be an EffortLevel enum value or None."
-            raise LLMInvalidEffortError(msg)
-
         _logger.debug(
             "BedrockClaudeJsonClient config: model_id='%s', region_name='%s', profile_name='%s', max_tokens=%i, temperature=%f, effort=%s",
             model_id,

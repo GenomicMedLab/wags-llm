@@ -8,7 +8,6 @@ from wags_llm.client.bedrock import (
     BedrockClaudeJsonClient,
     EffortLevel,
     LLMEmptyResponseError,
-    LLMInvalidEffortError,
     LLMInvocationError,
     LLMJsonDecodeError,
     LLMResponseFormatError,
@@ -128,17 +127,6 @@ def test_invoke_json_without_effort_omits_field():
         )
 
     assert "additionalModelRequestFields" not in fake_runtime_client.captured_request
-
-
-def test_invalid_effort_raises():
-    """Test that an invalid effort value raises LLMInvalidEffortError at construction."""
-    with pytest.raises(LLMInvalidEffortError, match=r"Effort must"):
-        BedrockClaudeJsonClient(
-            model_id=TEST_MODEL_ID,
-            region_name=TEST_REGION_NAME,
-            profile_name=TEST_PROFILE_NAME,
-            effort="extreme",
-        )
 
 
 def test_invoke_json_success():
