@@ -8,25 +8,25 @@ from pydantic import BaseModel
 
 from wags_llm.cache.in_memory import InMemoryCache
 from wags_llm.client.base import InvokeJsonResponse, LLMJsonClient
+from wags_llm.registry import Registry
 from wags_llm.services.structured_task import StructuredTaskRunner
-from wags_llm.skills.base import BaseSkillTemplate, SkillTemplateError
-from wags_llm.skills.registry import SkillRegistry
+from wags_llm.templates.skill_template import SkillTemplate, SkillTemplateError
 
 
-class DummySkill(BaseSkillTemplate):
+class DummySkill(SkillTemplate):
     """Simple skill for service tests."""
 
-    skill_path = Path("tests/unit/skills/test_skill_v1.md")
+    skill_path = Path("tests/examples/test_example_0.1.0.md")
 
     def build_user_prompt(self, payload) -> str:
         """Build the user prompt."""
         return f"Payload: {payload}"
 
 
-class MissingFileSkill(BaseSkillTemplate):
+class MissingFileSkill(SkillTemplate):
     """Missing skill file for service tests."""
 
-    skill_path = Path("tests/unit/skills/does_not_exist_v1.md")
+    skill_path = Path("tests/examples/does_not_exist_0.1.0.md")
 
     def build_user_prompt(self, payload) -> str:
         """Build the user prompt."""
@@ -87,17 +87,17 @@ class ResultModel(BaseModel):
 
 def test_execute_skill_success():
     """Test that execute_skill works correctly."""
-    registry = SkillRegistry()
+    registry = Registry()
     registry.register(DummySkill())
 
     service = StructuredTaskRunner(
         client=DummyClient(),
-        skill_registry=registry,
+        registry=registry,
     )
 
     result = service.execute_skill(
-        skill_name="test_skill",
-        skill_version="v1",
+        skill_name="test_example",
+        skill_version="0.1.0",
         payload={"text": "hello"},
         response_model=ResultModel,
     )
@@ -108,18 +108,18 @@ def test_execute_skill_success():
 def test_execute_skill_file_not_found():
     """Test that execute_skill raises FileNotFoundError when skill file does not exist."""
 
-    registry = SkillRegistry()
+    registry = Registry()
     registry.register(MissingFileSkill())
 
     service = StructuredTaskRunner(
         client=DummyClient(),
-        skill_registry=registry,
+        registry=registry,
     )
 
     with pytest.raises(SkillTemplateError):
         service.execute_skill(
             skill_name="does_not_exist",
-            skill_version="v1",
+            skill_version="0.1.0",
             payload={"text": "hello"},
             response_model=ResultModel,
         )
@@ -127,26 +127,26 @@ def test_execute_skill_file_not_found():
 
 def test_execute_skill_uses_cache():
     """Test that execute_skill works correctly with cache."""
-    registry = SkillRegistry()
+    registry = Registry()
     registry.register(DummySkill())
     client = DummyClient()
     cache = InMemoryCache()
 
     service = StructuredTaskRunner(
         client=client,
-        skill_registry=registry,
+        registry=registry,
         cache=cache,
     )
 
     result1 = service.execute_skill(
-        skill_name="test_skill",
-        skill_version="v1",
+        skill_name="test_example",
+        skill_version="0.1.0",
         payload={"x": 1},
         response_model=ResultModel,
     )
     result2 = service.execute_skill(
-        skill_name="test_skill",
-        skill_version="v1",
+        skill_name="test_example",
+        skill_version="0.1.0",
         payload={"x": 1},
         response_model=ResultModel,
     )
@@ -158,26 +158,26 @@ def test_execute_skill_uses_cache():
 
 def test_execute_skill_cache_miss_for_different_payload():
     """Test that execute_skill cache misses on different payload."""
-    registry = SkillRegistry()
+    registry = Registry()
     registry.register(DummySkill())
     client = DummyClient()
     cache = InMemoryCache()
 
     service = StructuredTaskRunner(
         client=client,
-        skill_registry=registry,
+        registry=registry,
         cache=cache,
     )
 
     service.execute_skill(
-        skill_name="test_skill",
-        skill_version="v1",
+        skill_name="test_example",
+        skill_version="0.1.0",
         payload={"x": 1},
         response_model=ResultModel,
     )
     service.execute_skill(
-        skill_name="test_skill",
-        skill_version="v1",
+        skill_name="test_example",
+        skill_version="0.1.0",
         payload={"x": 2},
         response_model=ResultModel,
     )
@@ -187,18 +187,18 @@ def test_execute_skill_cache_miss_for_different_payload():
 
 def test_execute_skill_validation_error():
     """Test that execute_skill raises RuntimeError when response validation fails."""
-    registry = SkillRegistry()
+    registry = Registry()
     registry.register(DummySkill())
 
     service = StructuredTaskRunner(
         client=BadClient(),
-        skill_registry=registry,
+        registry=registry,
     )
 
-    with pytest.raises(RuntimeError, match="Task failed"):
+    with pytest.raises(RuntimeError, match="skill execution failed"):
         service.execute_skill(
-            skill_name="test_skill",
-            skill_version="v1",
+            skill_name="test_example",
+            skill_version="0.1.0",
             payload={"text": "hello"},
             response_model=ResultModel,
         )

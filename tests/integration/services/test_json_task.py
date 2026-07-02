@@ -7,12 +7,12 @@ from pydantic import BaseModel
 
 from wags_llm.cache.in_memory import InMemoryCache
 from wags_llm.client.base import InvokeJsonResponse, LLMJsonClient
-from wags_llm.prompts.base import BasePromptTemplate
-from wags_llm.prompts.registry import PromptRegistry
+from wags_llm.registry import Registry
 from wags_llm.services.structured_task import StructuredTaskRunner
+from wags_llm.templates.prompt_template import PromptTemplate
 
 
-class DummyPrompt(BasePromptTemplate):
+class DummyPrompt(PromptTemplate):
     """Simple prompt for service tests."""
 
     name = "test_task"
@@ -81,12 +81,12 @@ class ResultModel(BaseModel):
 
 def test_run_success():
     """Test that run method works correctly"""
-    registry = PromptRegistry()
+    registry = Registry()
     registry.register(DummyPrompt())
 
     service = StructuredTaskRunner(
         client=DummyClient(),
-        prompt_registry=registry,
+        registry=registry,
     )
 
     result = service.execute_prompt(
@@ -101,14 +101,14 @@ def test_run_success():
 
 def test_run_uses_cache():
     """Test that run method works correctly with cache"""
-    registry = PromptRegistry()
+    registry = Registry()
     registry.register(DummyPrompt())
     client = DummyClient()
     cache = InMemoryCache()
 
     service = StructuredTaskRunner(
         client=client,
-        prompt_registry=registry,
+        registry=registry,
         cache=cache,
     )
 
@@ -132,14 +132,14 @@ def test_run_uses_cache():
 
 def test_run_cache_miss_for_different_payload():
     """Test that run method works correctly with cache that uses different payload"""
-    registry = PromptRegistry()
+    registry = Registry()
     registry.register(DummyPrompt())
     client = DummyClient()
     cache = InMemoryCache()
 
     service = StructuredTaskRunner(
         client=client,
-        prompt_registry=registry,
+        registry=registry,
         cache=cache,
     )
 
@@ -161,15 +161,15 @@ def test_run_cache_miss_for_different_payload():
 
 def test_run_validation_error():
     """Test that run raises error when response validation fails."""
-    registry = PromptRegistry()
+    registry = Registry()
     registry.register(DummyPrompt())
 
     service = StructuredTaskRunner(
         client=BadClient(),
-        prompt_registry=registry,
+        registry=registry,
     )
 
-    with pytest.raises(RuntimeError, match="Task failed"):
+    with pytest.raises(RuntimeError, match="prompt execution failed"):
         service.execute_prompt(
             prompt_name="test_task",
             prompt_version="v1",
