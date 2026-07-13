@@ -105,6 +105,35 @@ def test_invoke_json_with_effort():
     }
 
 
+def test_init_overrides_temperature_when_effort_enabled():
+    """Test that temperature is forced to 1 when effort is enabled."""
+    fake_runtime_client = FakeBedrockRuntimeClient(
+        response={
+            "output": {
+                "message": {
+                    "content": [
+                        {"text": '{"value": 1}'},
+                    ]
+                }
+            }
+        }
+    )
+
+    with patch(
+        "wags_llm.client.bedrock.boto3.Session",
+        return_value=FakeSession(fake_runtime_client),
+    ):
+        client = BedrockClaudeJsonClient(
+            model_id=TEST_MODEL_ID,
+            region_name=TEST_REGION_NAME,
+            profile_name=TEST_PROFILE_NAME,
+            temperature=0.5,
+            effort=EffortLevel.MEDIUM,
+        )
+
+    assert client.temperature == 1
+
+
 def test_invoke_json_without_effort_omits_field():
     """Test that invoke_json omits additionalModelRequestFields when effort is unset."""
     fake_runtime_client = FakeBedrockRuntimeClient(
