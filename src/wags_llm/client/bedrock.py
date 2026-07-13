@@ -54,6 +54,13 @@ class BedrockClaudeJsonClient(LLMJsonClient):
         :param temperature: Sampling temperature.
         :param effort: Optional adaptive thinking effort level. Use EffortLevel or None for model default.
         """
+        if effort and temperature != 1:
+            _logger.debug(
+                "Overriding temperature from %s to 1 because Bedrock requires temperature=1 when adaptive thinking is enabled.",
+                temperature,
+            )
+            temperature = 1
+
         _logger.debug(
             "BedrockClaudeJsonClient config: model_id='%s', region_name='%s', profile_name='%s', max_tokens=%i, temperature=%f, effort=%s",
             model_id,
