@@ -23,9 +23,7 @@ _logger = logging.getLogger(__name__)
 
 
 class EffortLevel(StrEnum):
-    """Internal supported Claude thinking effort levels.
-    Use MAX for the deepest reasoning. Only supported by Claude Opus 4.6.
-    """
+    """Internal supported Claude thinking effort levels."""
 
     HIGH = "high"
     MEDIUM = "medium"
@@ -52,10 +50,10 @@ class BedrockClaudeJsonClient(LLMJsonClient):
         :param profile_name: AWS profile name.
         :param max_tokens: Maximum number of tokens to request from the model.
         :param temperature: Sampling temperature.
-        :param effort: Optional adaptive thinking effort level. Use EffortLevel or None for model default.
+        :param effort: Optional adaptive thinking effort level. Use EffortLevel or None for model default. When specified, temperature is set to 1.
         """
         if effort and temperature != 1:
-            _logger.debug(
+            _logger.warning(
                 "Overriding temperature from %s to 1 because Bedrock requires temperature=1 when adaptive thinking is enabled.",
                 temperature,
             )
