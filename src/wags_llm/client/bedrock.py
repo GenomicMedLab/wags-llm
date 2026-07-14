@@ -54,7 +54,7 @@ class BedrockClaudeJsonClient(LLMJsonClient):
         """
         if effort and temperature != 1:
             _logger.warning(
-                "Overriding temperature from %s to 1 because Bedrock requires temperature=1 when adaptive thinking is enabled.",
+                "Overriding temperature from %f to 1 because Bedrock requires temperature=1 when adaptive thinking is enabled.",
                 temperature,
             )
             temperature = 1
