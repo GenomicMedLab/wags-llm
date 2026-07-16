@@ -6,6 +6,7 @@ import pytest
 
 from wags_llm.client.bedrock import (
     BedrockClaudeJsonClient,
+    EffortLevel,
     LLMEmptyResponseError,
     LLMInvocationError,
     LLMJsonDecodeError,
@@ -31,14 +32,16 @@ class FakeBedrockRuntimeClient:
         """
         self.response = response
         self.error = error
+        self.captured_request = None
 
-    def converse(self, **kwargs):  # noqa: ARG002
+    def converse(self, **kwargs):
         """Return a fake converse response.
 
         :param kwargs: Converse request arguments.
         :return: Fake response payload.
         :raise Exception: If configured with an error.
         """
+        self.captured_request = kwargs
         if self.error is not None:
             raise self.error
         return self.response
@@ -64,6 +67,95 @@ class FakeSession:
         assert service_name == "bedrock-runtime"
         assert region_name == TEST_REGION_NAME
         return self.runtime_client
+
+
+def test_invoke_json_with_effort():
+    """Test that invoke_json includes the effort beta config when effort is set."""
+    fake_runtime_client = FakeBedrockRuntimeClient(
+        response={
+            "output": {
+                "message": {
+                    "content": [
+                        {"text": '{"value": 1}'},
+                    ]
+                }
+            }
+        }
+    )
+
+    with patch(
+        "wags_llm.client.bedrock.boto3.Session",
+        return_value=FakeSession(fake_runtime_client),
+    ):
+        client = BedrockClaudeJsonClient(
+            model_id=TEST_MODEL_ID,
+            region_name=TEST_REGION_NAME,
+            profile_name=TEST_PROFILE_NAME,
+            effort=EffortLevel.MEDIUM,
+        )
+
+        client.invoke_json(
+            system_prompt=TEST_SYSTEM_PROMPT,
+            user_prompt=TEST_USER_PROMPT,
+        )
+
+    assert fake_runtime_client.captured_request["additionalModelRequestFields"] == {
+        "thinking": {"type": "adaptive"},
+        "output_config": {"effort": "medium"},
+    }
+
+
+def test_init_overrides_temperature_when_effort_enabled():
+    """Test that temperature is forced to 1 when effort is enabled."""
+    fake_runtime_client = FakeBedrockRuntimeClient(
+        response={
+            "output": {
+                "message": {
+                    "content": [
+                        {"text": '{"value": 1}'},
+                    ]
+                }
+            }
+        }
+    )
+
+    with patch(
+        "wags_llm.client.bedrock.boto3.Session",
+        return_value=FakeSession(fake_runtime_client),
+    ):
+        client = BedrockClaudeJsonClient(
+            model_id=TEST_MODEL_ID,
+            region_name=TEST_REGION_NAME,
+            profile_name=TEST_PROFILE_NAME,
+            temperature=0.5,
+            effort=EffortLevel.MEDIUM,
+        )
+
+    assert client.temperature == 1
+
+
+def test_invoke_json_without_effort_omits_field():
+    """Test that invoke_json omits additionalModelRequestFields when effort is unset."""
+    fake_runtime_client = FakeBedrockRuntimeClient(
+        response={"output": {"message": {"content": [{"text": '{"value": 1}'}]}}}
+    )
+
+    with patch(
+        "wags_llm.client.bedrock.boto3.Session",
+        return_value=FakeSession(fake_runtime_client),
+    ):
+        client = BedrockClaudeJsonClient(
+            model_id=TEST_MODEL_ID,
+            region_name=TEST_REGION_NAME,
+            profile_name=TEST_PROFILE_NAME,
+        )
+
+        client.invoke_json(
+            system_prompt=TEST_SYSTEM_PROMPT,
+            user_prompt=TEST_USER_PROMPT,
+        )
+
+    assert "additionalModelRequestFields" not in fake_runtime_client.captured_request
 
 
 def test_invoke_json_success():

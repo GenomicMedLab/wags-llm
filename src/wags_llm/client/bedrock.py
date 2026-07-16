@@ -6,6 +6,7 @@
 
 import json
 import logging
+from enum import StrEnum
 from typing import Any
 
 import boto3
@@ -21,6 +22,15 @@ from wags_llm.client.exceptions import (
 _logger = logging.getLogger(__name__)
 
 
+class EffortLevel(StrEnum):
+    """Internal supported Claude thinking effort levels."""
+
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+    MAX = "max"
+
+
 class BedrockClaudeJsonClient(LLMJsonClient):
     """Bedrock Claude Converse JSON client."""
 
@@ -31,6 +41,7 @@ class BedrockClaudeJsonClient(LLMJsonClient):
         profile_name: str,
         max_tokens: int = 300,
         temperature: float = 0.0,
+        effort: EffortLevel | None = None,
     ) -> None:
         """Initialize the Bedrock Claude client.
 
@@ -39,18 +50,28 @@ class BedrockClaudeJsonClient(LLMJsonClient):
         :param profile_name: AWS profile name.
         :param max_tokens: Maximum number of tokens to request from the model.
         :param temperature: Sampling temperature.
+        :param effort: Optional adaptive thinking effort level. Use EffortLevel or None for model default. When specified, temperature is set to 1.
         """
+        if effort and temperature != 1:
+            _logger.warning(
+                "Overriding temperature from %f to 1 because Bedrock requires temperature=1 when adaptive thinking is enabled.",
+                temperature,
+            )
+            temperature = 1
+
         _logger.debug(
-            "BedrockClaudeJsonClient config: model_id='%s', region_name='%s', profile_name='%s', max_tokens=%i, temperature=%f",
+            "BedrockClaudeJsonClient config: model_id='%s', region_name='%s', profile_name='%s', max_tokens=%i, temperature=%f, effort=%s",
             model_id,
             region_name,
             profile_name,
             max_tokens,
             temperature,
+            effort.value if effort else None,
         )
         self.model_id = model_id
         self.max_tokens = max_tokens
         self.temperature = temperature
+        self.effort = effort
 
         session = boto3.Session(profile_name=profile_name)
         self._client = session.client("bedrock-runtime", region_name=region_name)
@@ -97,6 +118,12 @@ class BedrockClaudeJsonClient(LLMJsonClient):
                 "temperature": self.temperature,
             },
         }
+
+        if self.effort:
+            converse_params["additionalModelRequestFields"] = {
+                "thinking": {"type": "adaptive"},
+                "output_config": {"effort": self.effort.value},
+            }
 
         if json_schema:
             converse_params["outputConfig"] = {
