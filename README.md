@@ -21,7 +21,6 @@ Extend the toolkit by defining your own prompts, skills, and response models.
 
 Researchers working in biomedical and clinical domains increasingly need LLM capabilities, but building reliable, reproducible workflows from scratch requires significant engineering overhead. Wags-LLM simplifies that complexity so domain experts can focus on defining what the model should do, not how to run it. It supports biomedical knowledge curation workflows where structured, auditable outputs are essential, and accelerates research that can translate into clinical practice.
 
-
 | Project | Description |
 |---|---|
 | [gene-harmony-analysis](https://github.com/cancervariants/gene-harmony-analysis) | Uses Wags-LLM to predict whether alias gene symbols represent alternate abbreviations of primary gene symbols or official gene names, enabling large-scale annotation that would be impractical to review manually.|
