@@ -5,17 +5,26 @@
 [![image](https://img.shields.io/pypi/pyversions/wags_llm.svg)](https://pypi.python.org/pypi/wags_llm)
 [![Actions status](https://github.com/genomicmedlab/wags_llm/actions/workflows/checks.yaml/badge.svg)](https://github.com/genomicmedlab/wags_llm/actions/checks.yaml)
 
-**Wagnerds toolkit for structured LLM workflows.**
+**Build reproducible, structured LLM workflows.**
 
-Execute LLM prompts with:
+Wags-LLM executes versioned prompts (single structured tasks) and reusable skills (multi-step workflows) with:
 
-- versioned prompts
 - Pydantic-validated structured outputs
-- optional caching
+- Optional caching
+- AWS Bedrock (Claude) support, with additional model providers planned
 
-Extend by defining your own prompts and response models
+Extend the toolkit by defining your own prompts, skills, and response models.
 
 ---
+
+## Projects Using Wags-LLM
+
+Researchers working in biomedical and clinical domains increasingly need LLM capabilities, but building reliable, reproducible workflows from scratch requires significant engineering overhead. Wags-LLM simplifies that complexity so domain experts can focus on defining what the model should do, not how to run it. It supports biomedical knowledge curation workflows where structured, auditable outputs are essential, and accelerates research that can translate into clinical practice.
+
+| Project | Description |
+|---|---|
+| [gene-harmony-analysis](https://github.com/cancervariants/gene-harmony-analysis) | Uses Wags-LLM to predict whether alias gene symbols represent alternate abbreviations of primary gene symbols or official gene names, enabling large-scale annotation that would be impractical to review manually.|
+| [dgiLIT](https://github.com/dgidb/dgiLIT) | Uses Wags-LLM to classify drug-gene interactions from literature, including interaction presence and directionality (e.g., activating or inhibiting). |
 
 ## Installation
 
@@ -25,14 +34,9 @@ Wags-LLM is available on [PyPI](https://pypi.org/project/wags_llm):
 python3 -m pip install wags_llm
 ```
 
----
+## Examples
 
-## Example
-
-See our [Example Notebook](./notebooks/example.ipynb) for an example on how to use
-Wags-LLM.
-
----
+See the [`notebooks/`](./notebooks) directory for examples of how to use Wags-LLM.
 
 ## Development
 
