@@ -14,13 +14,13 @@ Wags-LLM executes versioned prompts (single structured tasks) and reusable skill
 - AWS Bedrock (Claude) support, with additional model providers planned
 
 Extend the toolkit by defining your own prompts, skills, and response models.
+
 ---
 
-## Introduction
+## Projects Using Wags-LLM
 
 Researchers working in biomedical and clinical domains increasingly need LLM capabilities, but building reliable, reproducible workflows from scratch requires significant engineering overhead. Wags-LLM simplifies that complexity so domain experts can focus on defining what the model should do, not how to run it. It supports biomedical knowledge curation workflows where structured, auditable outputs are essential, and accelerates research that can translate into clinical practice.
 
-## Projects Using Wags-LLM
 
 | Project | Description |
 |---|---|
